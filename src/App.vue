@@ -35,19 +35,20 @@
         
         // create download of registry buffer as binary file
         // @ts-ignore
-        /* const blob = new Blob([rpcDescriptionBuffer.value], { type: 'application/octet-stream' })
+        const blob = new Blob([rpcDescriptionBuffer.value], { type: 'application/octet-stream' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
         a.download = 'registry.bin'
         a.click()
-        URL.revokeObjectURL(url) */
+        URL.revokeObjectURL(url)
 
       //  rpcDescription.value = TypeRegistry.deserialize(new Reader(rpcDescriptionBuffer.value, new CodecRegistry()))
 
         const registry = typeRegistrySerializationRegistry()
-        const reader = new Reader(rpcDescriptionBuffer.value, new CodecRegistry())       
-        registerDynamicCodecs(reader.codecs, registry)
+        const codecs = new CodecRegistry()
+        registerDynamicCodecs(codecs, registry)
+        const reader = new Reader(rpcDescriptionBuffer.value, codecs)       
         const rpcDescription = deserializeTypedJson(reader, registry, 'type_registry')
 
         console.log('rpcDescription', rpcDescription)
