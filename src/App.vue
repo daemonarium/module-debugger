@@ -1,25 +1,28 @@
 <template>
   <div>
     <ModuleSource v-if="!wasmModule" v-model="wasmModule" />
-    
+    <ModuleDebugger v-if="module" :module="module" />
+    <Toast />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { shallowRef, ref, watch } from 'vue'
   import ModuleSource from './components/ModuleSource.vue'
+  import ModuleDebugger from './components/ModuleDebugger.vue'
+  import Toast from 'primevue/toast'
+  
+  import { shallowRef, ref, watch } from 'vue'  
   import { Module } from './module'
-  import { 
-    TypeRegistry, Reader, CodecRegistry, typeRegistrySerializationRegistry, deserializeTypedJson,
-    registerDynamicCodecs 
-  } from '@wa-os/ts-rpc'
+  import { defaultHighlightStyle } from '@codemirror/language'
+  import { StyleModule } from 'style-mod'
+
+  if (typeof window !== 'undefined') {
+    StyleModule.mount(window.document, defaultHighlightStyle.module)
+  }
 
   const wasmModule = shallowRef<WebAssembly.Module | null>(null)
 
   const module = shallowRef<Module | null>(null)
-
-  const rpcDescriptionBuffer = shallowRef<Uint8Array | null>(null)
-  const rpcDescription = shallowRef<TypeRegistry | null>(null)
 
   watch(wasmModule, async (newWasmModule) => {
     if (newWasmModule) {
@@ -29,33 +32,23 @@
       //@ts-ignore
       globalThis.module = m
 
-      try {
-        rpcDescriptionBuffer.value = m.getRpcDescription()
-        console.log('rpcDescriptionBuffer', rpcDescriptionBuffer.value)
-        
-        // create download of registry buffer as binary file
-        // @ts-ignore
-        const blob = new Blob([rpcDescriptionBuffer.value], { type: 'application/octet-stream' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'registry.bin'
-        a.click()
-        URL.revokeObjectURL(url)
+      /* // create download of registry buffer as binary file
+      // @ts-ignore
+      const blob = new Blob([rpcDescriptionBuffer.value], { type: 'application/octet-stream' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'registry.bin'
+      a.click()
+      URL.revokeObjectURL(url) */
 
-      //  rpcDescription.value = TypeRegistry.deserialize(new Reader(rpcDescriptionBuffer.value, new CodecRegistry()))
+    //  rpcDescription.value = TypeRegistry.deserialize(new Reader(rpcDescriptionBuffer.value, new CodecRegistry()))
 
-        const registry = typeRegistrySerializationRegistry()
-        const codecs = new CodecRegistry()
-        registerDynamicCodecs(codecs, registry)
-        const reader = new Reader(rpcDescriptionBuffer.value, codecs)       
-        const rpcDescription = deserializeTypedJson(reader, registry, 'type_registry')
 
-        console.log('rpcDescription', rpcDescription)
-
-      } catch (error) {
-        console.error('Failed to get rpc description', error)
-      }
+      console.log('rpcDescription', m.rpcDescription)
+      //@ts-ignore
+      globalThis.rpcDescription = m.rpcDescription
+      module.value = m
     }
   })
 

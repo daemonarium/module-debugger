@@ -1,8 +1,11 @@
+import { TypeRegistry, deserializeTypeRegistry } from '@wa-os/ts-rpc';
+
 export class Module {
 
   wasm: WebAssembly.Module;
   memory: WebAssembly.Memory;
   instance?: WebAssembly.Instance;
+  rpcDescription?: TypeRegistry;
   
   constructor(wasm: WebAssembly.Module) {
     this.wasm = wasm;
@@ -21,9 +24,11 @@ export class Module {
     this.instance = await WebAssembly.instantiate(this.wasm, imports);
     //@ts-ignore
     this.instance.exports._initialize();
+
+    this.rpcDescription = deserializeTypeRegistry(this.readRawRpcDescription());
   }
 
-  getRpcDescription(): Uint8Array {
+  readRawRpcDescription(): Uint8Array {
     /// call exported malloc to create space for returned pointer
     const pointer = (this.instance?.exports.malloc as (size: number) => number)(4);
     if (!pointer) {
