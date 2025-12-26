@@ -86,6 +86,8 @@
     // Map language names to highlight language codes
     const languageMap: Record<string, 'cpp' | 'javascript' | 'typescript' | 'rust' | 'go'> = {
       'C++': 'cpp',
+      'C++ Client': 'cpp',
+      'C++ Server': 'cpp',
       'JavaScript': 'javascript',
       'TypeScript': 'typescript',
       'Rust': 'rust',
