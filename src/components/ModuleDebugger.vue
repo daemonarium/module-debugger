@@ -93,20 +93,6 @@
                   @click="callMethod(objectType, methodMember)"
                   :disabled="!canCallMethod(objectType, methodMember)"
                 />
-                <Message
-                  v-if="methodResults[`${objectType.name}.${methodMember.name}`] || methodErrors[`${objectType.name}.${methodMember.name}`]"
-                  :severity="methodErrors[`${objectType.name}.${methodMember.name}`] ? 'error' : 'success'"
-                  :closable="true"
-                  @close="clearMethodResult(objectType.name, methodMember.name)"
-                  class="mt-2"
-                >
-                  <div v-if="methodErrors[`${objectType.name}.${methodMember.name}`]">
-                    {{ methodErrors[`${objectType.name}.${methodMember.name}`] }}
-                  </div>
-                  <div v-else class="font-mono text-sm">
-                    {{ formatResult(methodResults[`${objectType.name}.${methodMember.name}`]) }}
-                  </div>
-                </Message>
               </div>
             </div>
 
@@ -123,6 +109,20 @@
         No object types with methods found in the module.
       </div>
     </div>
+
+    <!-- RPC Messages Dialog -->
+    <Dialog
+      v-model:visible="showMessagesDialog"
+      :header="`RPC Messages - ${currentMethodName || 'Method Call'}`"
+      :modal="true"
+      :style="{ width: '90vw', maxWidth: '1200px' }"
+      :maximizable="true"
+    >
+      <MessagesView
+        :messages="rpcMessages"
+        :registry="module.rpcDescription!"
+      />
+    </Dialog>
   </div>
 </template>
 
@@ -136,9 +136,11 @@
   import Message from 'primevue/message'
   import TypeViewer from './TypeViewer.vue'
   import GlueCodeGenerator from './GlueCodeGenerator.vue'
+  import MessagesView from './MessagesView.vue'
+  import Dialog from 'primevue/dialog'
   import { Module } from '../module'
-  import { TypeKind } from '@wa-os/ts-rpc'
-  import type { TypeDescription, TypeMember, TypedValue } from '@wa-os/ts-rpc'
+  import { TypeKind, RpcDebugger, RpcClient, CodecRegistry, registerDynamicCodecs, type RpcMessage, Writer, Reader } from '@wa-os/ts-rpc'
+  import type { TypeDescription, TypeMember, TypedValue, RegisteredMethod } from '@wa-os/ts-rpc'
 
   const props = defineProps<{
     module: Module
@@ -151,6 +153,9 @@
   const methodResults = ref<Record<string, unknown>>({})
   const methodErrors = ref<Record<string, string>>({})
   const callingMethods = ref<Record<string, boolean>>({})
+  const rpcMessages = ref<RpcMessage[]>([])
+  const showMessagesDialog = ref(false)
+  const currentMethodName = ref<string>('')
 
   const objectTypesWithMethods = computed(() => {
     if (!module.value?.rpcDescription) {
@@ -213,28 +218,139 @@
   }
 
   async function callMethod(objectType: TypeDescription, methodMember: TypeMember) {
+    if (!module.value?.rpcDescription) {
+      methodErrors.value[`${objectType.name}.${methodMember.name}`] = 'RPC description not available'
+      return
+    }
+
     const methodKey = `${objectType.name}.${methodMember.name}`
     callingMethods.value[methodKey] = true
     methodErrors.value[methodKey] = ''
     methodResults.value[methodKey] = undefined
+    rpcMessages.value = []
+    currentMethodName.value = `${objectType.name}.${methodMember.name}`
+    showMessagesDialog.value = true
 
     try {
-      // TODO: Implement actual RPC call
-      // For now, just simulate a call
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Mock result
-      methodResults.value[methodKey] = {
-        message: 'RPC call not yet implemented',
-        objectType: objectType.name,
-        method: methodMember.name,
-        params: methodMember.type.members?.map((m: TypeMember) => ({
-          name: m.name,
-          value: methodParams.value[`${objectType.name}.${methodMember.name}.${m.name}`] || ''
-        })) || []
+      // Use methodId directly from methodMember.type
+      const methodId = methodMember.type.methodId
+      if (methodId === undefined) {
+        throw new Error(`Method ${methodMember.name} has no methodId assigned. Make sure assignMethodIds() was called.`)
       }
+
+      // Parse parameters
+      const paramValues: any[] = []
+      if (methodMember.type.members) {
+        for (const param of methodMember.type.members) {
+          const paramKey = `${objectType.name}.${methodMember.name}.${param.name}`
+          const paramStr = methodParams.value[paramKey] || ''
+          let paramValue: any
+
+          // Try to parse as JSON, fallback to string
+          try {
+            paramValue = JSON.parse(paramStr)
+          } catch {
+            // If not valid JSON, try to infer type
+            if (param.type.kind === TypeKind.String) {
+              paramValue = paramStr
+            } else if (param.type.kind === TypeKind.Boolean) {
+              paramValue = paramStr === 'true' || paramStr === '1'
+            } else if (param.type.kind === TypeKind.UnsignedInteger || param.type.kind === TypeKind.SignedInteger) {
+              paramValue = Number(paramStr) || 0
+            } else if (param.type.kind === TypeKind.FloatingPoint) {
+              paramValue = parseFloat(paramStr) || 0
+            } else {
+              paramValue = paramStr
+            }
+          }
+
+          paramValues.push(paramValue)
+        }
+      }
+
+      // Create codec registry
+      const codecs = new CodecRegistry()
+      registerDynamicCodecs(codecs, module.value.rpcDescription)
+
+      // Create RpcDebugger for decoding packets
+      const rpcDebugger = new RpcDebugger(module.value.rpcDescription, codecs)
+
+      // Track requestId -> methodId mapping for response decoding
+      const requestIdToMethodId = new Map<number, number>()
+
+      // Create sender that intercepts requests
+      // Note: We create a new Writer for each call to avoid state issues
+      let currentWriter: Writer | null = null
+      
+      const sender = () => {
+        if (!currentWriter) {
+          throw new Error('Writer not initialized')
+        }
+        // Get request data from writer (capture before sending)
+        const requestData = new Uint8Array(currentWriter.toArrayBuffer())
+        
+        // Decode request to get requestId and methodId
+        const requestMessage = rpcDebugger.decodeRequest(requestData)
+        requestIdToMethodId.set(requestMessage.requestId, methodId)
+        
+        // Add request to messages
+        rpcMessages.value.push(requestMessage)
+        
+        // Send request to WASM
+        module.value.handleMessage(0, requestData)
+      }
+
+      // Create new Writer for this call
+      currentWriter = new Writer(codecs)
+      
+      // Create RpcClient
+      const rpcClient = new RpcClient(currentWriter, module.value.rpcDescription, sender)
+
+      // Set up send_message callback to handle responses
+      module.value.setSendMessageCallback((channel: number, buffer: Uint8Array) => {
+        if (channel === 0) {
+          // Create a copy of the buffer since it's a view on WASM memory
+          const responseData = buffer.slice()
+          
+          // Decode response to get requestId
+          const tempReader = new Reader(responseData, codecs)
+          const requestId = Number(tempReader.readU64())
+          const methodId = requestIdToMethodId.get(requestId)
+          
+          // Decode response message
+          const responseMessage = rpcDebugger.decodeResponse(responseData, methodId)
+          rpcMessages.value.push(responseMessage)
+          
+          // Clean up mapping
+          requestIdToMethodId.delete(requestId)
+          
+          // Handle response in RpcClient
+          const reader = new Reader(responseData, codecs)
+          rpcClient.handleResponse(reader)
+        }
+      })
+
+      // Call method using RpcClient
+      let promise: Promise<any>
+      if (methodMember.type.kind === TypeKind.Method) {
+        // Dynamic method - need object ID
+        // For now, assume ID is 0 or first parameter
+        // This might need adjustment based on actual usage
+        const id = paramValues.length > 0 ? paramValues[0] : 0
+        const methodArgs = paramValues.slice(1)
+        promise = rpcClient.callMethod(methodId, id, ...methodArgs)
+      } else {
+        // Static/singleton method
+        promise = rpcClient.call(methodId, ...paramValues)
+      }
+
+      // Wait for response - response will be added via send_message callback
+      await promise
+      
+      methodResults.value[methodKey] = 'Success'
     } catch (error) {
       methodErrors.value[methodKey] = error instanceof Error ? error.message : String(error)
+      console.error('RPC call error:', error)
     } finally {
       callingMethods.value[methodKey] = false
     }

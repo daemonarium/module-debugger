@@ -6,6 +6,7 @@ export class Module {
   memory: WebAssembly.Memory;
   instance?: WebAssembly.Instance;
   rpcDescription?: TypeRegistry;
+  private sendMessageCallback?: (channel: number, buffer: Uint8Array) => void;
   
   constructor(wasm: WebAssembly.Module) {
     this.wasm = wasm;
@@ -16,8 +17,16 @@ export class Module {
     const imports = {
       env: {
         memory: this.memory,
-        send_message: (channel: number, buffer: ArrayBuffer, size: number) => {
-          console.log('send_message', channel, buffer, size);
+        send_message: (channel: number, pointer: number, size: number) => {
+          // Read data from WASM memory using pointer and size
+          // Create a copy of the data since the memory view might change
+          const data = new Uint8Array(this.memory.buffer, pointer, size).slice()
+          
+          if (this.sendMessageCallback) {
+            this.sendMessageCallback(channel, data);
+          } else {
+            console.log('send_message', channel, data);
+          }
         },
       },
     }    
@@ -26,6 +35,39 @@ export class Module {
     this.instance.exports._initialize();
 
     this.rpcDescription = deserializeTypeRegistry(this.readRawRpcDescription());
+    if (this.rpcDescription) {
+      this.rpcDescription.assignMethodIds();
+    }
+  }
+
+  setSendMessageCallback(callback: (channel: number, buffer: Uint8Array) => void) {
+    this.sendMessageCallback = callback;
+  }
+
+  handleMessage(channel: number, data: ArrayBuffer | Uint8Array): void {
+    if (!this.instance) {
+      throw new Error('Module not instantiated');
+    }
+
+    const buffer = data instanceof Uint8Array ? data : new Uint8Array(data);
+    
+    // Allocate memory in WASM for the message
+    const pointer = (this.instance.exports.malloc as (size: number) => number)(buffer.length);
+    if (!pointer) {
+      throw new Error('Failed to allocate memory for message');
+    }
+
+    // Copy data to WASM memory
+    const wasmMemory = new Uint8Array(this.memory.buffer, pointer, buffer.length);
+    wasmMemory.set(buffer);
+
+    // Call handle_message in WASM
+    const handleMessage = this.instance.exports.handle_message as (channel: number, buffer: number, size: number) => void;
+    if (!handleMessage) {
+      throw new Error('handle_message not exported from WASM module');
+    }
+
+    handleMessage(channel, pointer, buffer.length);
   }
 
   readRawRpcDescription(): Uint8Array {
