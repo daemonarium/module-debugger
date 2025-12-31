@@ -1,4 +1,4 @@
-import { TypeRegistry, deserializeTypeRegistry } from '@wa-os/ts-rpc';
+import { TypeRegistry, deserializeTypeRegistry, ModuleSockets } from '@wa-os/ts-rpc';
 
 export class Module {
 
@@ -7,6 +7,7 @@ export class Module {
   instance?: WebAssembly.Instance;
   rpcDescription?: TypeRegistry;
   private sendMessageCallback?: (channel: number, buffer: Uint8Array) => void;
+  private moduleSockets?: ModuleSockets;
   
   constructor(wasm: WebAssembly.Module) {
     this.wasm = wasm;
@@ -17,22 +18,21 @@ export class Module {
     const imports = {
       env: {
         memory: this.memory,
-        send_message: (channel: number, pointer: number, size: number) => {
-          // Read data from WASM memory using pointer and size
-          // Create a copy of the data since the memory view might change
-          const data = new Uint8Array(this.memory.buffer, pointer, size).slice()
-          
-          if (this.sendMessageCallback) {
-            this.sendMessageCallback(channel, data);
-          } else {
-            console.log('send_message', channel, data);
-          }
-        },
       },
+      waos: {
+        waos_socket_flush: (socket: number) => {
+          this.handleSocketFlush(socket)
+        }
+      }
     }    
     this.instance = await WebAssembly.instantiate(this.wasm, imports);
     //@ts-ignore
     this.instance.exports._initialize();
+    //@ts-ignore
+    this.instance.exports.start();
+
+    // initialize sockets view
+    this.moduleSockets = await ModuleSockets.fromInstance(this.instance, this.memory);
 
     this.rpcDescription = deserializeTypeRegistry(this.readRawRpcDescription());
     if (this.rpcDescription) {
@@ -44,30 +44,40 @@ export class Module {
     this.sendMessageCallback = callback;
   }
 
-  handleMessage(channel: number, data: ArrayBuffer | Uint8Array): void {
-    if (!this.instance) {
+  /**
+   * Send RPC request into socket 0 input buffer and trigger processing inside WASM.
+   */
+  handleMessage(_channel: number, data: ArrayBuffer | Uint8Array): void {
+    if (!this.instance || !this.moduleSockets) {
       throw new Error('Module not instantiated');
     }
 
     const buffer = data instanceof Uint8Array ? data : new Uint8Array(data);
-    
-    // Allocate memory in WASM for the message
-    const pointer = (this.instance.exports.malloc as (size: number) => number)(buffer.length);
-    if (!pointer) {
-      throw new Error('Failed to allocate memory for message');
+    const socket0 = this.moduleSockets.getSocket(0);
+    if (!socket0) {
+      throw new Error('Socket 0 not available or not open');
     }
 
-    // Copy data to WASM memory
-    const wasmMemory = new Uint8Array(this.memory.buffer, pointer, buffer.length);
-    wasmMemory.set(buffer);
-
-    // Call handle_message in WASM
-    const handleMessage = this.instance.exports.handle_message as (channel: number, buffer: number, size: number) => void;
-    if (!handleMessage) {
-      throw new Error('handle_message not exported from WASM module');
+    // Ensure enough space (length prefix + payload)
+    const total = 4 + buffer.length;
+    if (total > socket0.inputBuffer.writableBytes()) {
+      throw new Error('Not enough space in socket 0 input buffer for request');
     }
 
-    handleMessage(channel, pointer, buffer.length);
+    // Write length prefix (uint32 LE) then payload
+    const lenBytes = new Uint8Array(4);
+    new DataView(lenBytes.buffer).setUint32(0, buffer.length, true);
+    socket0.write(lenBytes, lenBytes.length);
+    if (buffer.length > 0) {
+      socket0.write(buffer, buffer.length);
+    }
+
+    // Trigger RPC processing on socket 0
+    const handleRpc = this.instance.exports.waos_socket_data as (socket: number) => void | undefined;
+    if (!handleRpc) {
+      throw new Error('waos_handle_rpc_socket0 not exported from WASM module');
+    }
+    handleRpc(0);
   }
 
   readRawRpcDescription(): Uint8Array {
@@ -88,5 +98,42 @@ export class Module {
     }
     /// read the description from the memory by copying it to a new array buffer
     return new Uint8Array(this.memory.buffer, descriptionPointer, descriptionSize);
+  }
+
+  /**
+   * Called from WASM when socket_flush is invoked.
+   * Reads all data from the flushed socket output buffer and forwards via callback.
+   */
+  private handleSocketFlush(socket: number) {
+    if (!this.moduleSockets) return;
+    const sock = this.moduleSockets.getSocket(socket);
+    if (!sock) return;
+
+    // Process length-prefixed messages; there may be multiple in the buffer
+    while (true) {
+      const readable = sock.outputBuffer.readableBytes();
+      if (readable < 4) break;
+
+      const lenBuf = new Uint8Array(4);
+      sock.outputBuffer.peek(0, lenBuf, 4);
+      const msgLen = new DataView(lenBuf.buffer).getUint32(0, true);
+
+      if (readable < 4 + msgLen) break; // wait for more data
+
+      // Consume length
+      sock.outputBuffer.skipRead(4);
+
+      // Read message
+      const data = new Uint8Array(msgLen);
+      if (msgLen > 0) {
+        sock.outputBuffer.read(data, msgLen);
+      }
+
+      if (this.sendMessageCallback) {
+        this.sendMessageCallback(socket, data);
+      } else {
+        console.log('socket_flush', socket, data);
+      }
+    }
   }
 }
