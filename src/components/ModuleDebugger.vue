@@ -206,7 +206,8 @@
       [TypeKind.Pointer]: 'pointer',
       [TypeKind.Map]: '{}',
       [TypeKind.Function]: 'function',
-      [TypeKind.Method]: 'method'
+      [TypeKind.Method]: 'method',
+      [TypeKind.Message]: 'message'
     }
     return kindMap[type.kind] || ''
   }

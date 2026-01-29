@@ -141,7 +141,8 @@
       [TypeKind.Pointer]: 'pointer',
       [TypeKind.Map]: 'map',
       [TypeKind.Function]: 'function',
-      [TypeKind.Method]: 'method'
+      [TypeKind.Method]: 'method',
+      [TypeKind.Message]: 'message'
     }
     return kindMap[props.type.kind] || 'unknown'
   })
