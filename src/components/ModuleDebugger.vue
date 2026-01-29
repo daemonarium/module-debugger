@@ -139,7 +139,7 @@
   import MessagesView from './MessagesView.vue'
   import Dialog from 'primevue/dialog'
   import { Module } from '../module'
-  import { TypeKind, RpcDebugger, RpcClient, CodecRegistry, registerDynamicCodecs, type RpcMessage, Writer, Reader } from '@wa-os/ts-rpc'
+  import { TypeKind, RpcDebugger, RawRpcClient, CodecRegistry, registerDynamicCodecs, type RpcMessage, Writer, Reader } from '@wa-os/ts-rpc'
   import type { TypeDescription, TypeMember, TypedValue, RegisteredMethod } from '@wa-os/ts-rpc'
 
   const props = defineProps<{
@@ -304,8 +304,8 @@
       // Create new Writer for this call
       currentWriter = new Writer(codecs)
       
-      // Create RpcClient
-      const rpcClient = new RpcClient(currentWriter, module.value.rpcDescription, sender)
+      // Create RawRpcClient
+      const rpcClient = new RawRpcClient(currentWriter, module.value.rpcDescription, sender)
 
       // Set up send_message callback to handle responses
       module.value.setSendMessageCallback((channel: number, buffer: Uint8Array) => {
