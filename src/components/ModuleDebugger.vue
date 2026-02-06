@@ -170,7 +170,9 @@
       }
 
       // Check if it has any methods
-      return type.members?.some(member => member.type.kind === TypeKind.Method || member.type.kind === TypeKind.Function) || false
+      return type.members?.some(
+        member => member.type.kind === TypeKind.Method || member.type.kind === TypeKind.Function
+      ) || false
     })
   })
 
@@ -179,7 +181,9 @@
       return []
     }
 
-    return objectType.members.filter(member => member.type.kind === TypeKind.Method || member.type.kind === TypeKind.Function)
+    return objectType.members.filter(
+      member => member.type.kind === TypeKind.Method || member.type.kind === TypeKind.Function
+    )
   }
 
   function handleToggleExpand(typeName: string) {

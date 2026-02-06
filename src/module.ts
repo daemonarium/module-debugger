@@ -80,14 +80,16 @@ export class Module {
     handleRpc(0);
   }
 
-  readRawRpcDescription(): Uint8Array {
+  readRawRpcDescription(socket: number = 0): Uint8Array {
     /// call exported malloc to create space for returned pointer
     const pointer = (this.instance?.exports.malloc as (size: number) => number)(4);
     if (!pointer) {
       throw new Error('Failed to allocate memory for rpc description');
     }
     /// call exported rpc_description to get the description
-    const descriptionSize = (this.instance?.exports.rpc_description as (pointer: number) => number)(pointer);
+    const descriptionSize = (
+      this.instance?.exports.rpc_description as (socket: number, pointer: number) => number
+    )(socket, pointer);
     if (!descriptionSize) {
       throw new Error('Failed to get rpc description');
     }
