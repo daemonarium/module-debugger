@@ -128,21 +128,29 @@
   const typeKind = computed(() => {
     const kindMap: Record<TypeKind, string> = {
       [TypeKind.Void]: 'void',
-      [TypeKind.UnsignedInteger]: 'uint',
-      [TypeKind.SignedInteger]: 'sint',
-      [TypeKind.FloatingPoint]: 'float',
       [TypeKind.Boolean]: 'bool',
-      [TypeKind.String]: 'string',
-      [TypeKind.Binary]: 'binary',
+      [TypeKind.UnsignedInteger8]: 'u8',
+      [TypeKind.SignedInteger8]: 'i8',
+      [TypeKind.UnsignedInteger16]: 'u16',
+      [TypeKind.SignedInteger16]: 'i16',
+      [TypeKind.UnsignedInteger32]: 'u32',
+      [TypeKind.SignedInteger32]: 'i32',
+      [TypeKind.UnsignedInteger64]: 'u64',
+      [TypeKind.SignedInteger64]: 'i64',
+      [TypeKind.FloatingPoint32]: 'f32',
+      [TypeKind.FloatingPoint64]: 'f64',
       [TypeKind.Enum]: 'enum',
       [TypeKind.Array]: 'array',
+      [TypeKind.String]: 'string',
+      [TypeKind.Binary]: 'binary',
+      [TypeKind.Map]: 'map',
       [TypeKind.Object]: 'object',
       [TypeKind.DynamicObject]: 'dynamic',
+      [TypeKind.Message]: 'message',
+      [TypeKind.Exception]: 'exception',
       [TypeKind.Pointer]: 'pointer',
-      [TypeKind.Map]: 'map',
       [TypeKind.Function]: 'function',
-      [TypeKind.Method]: 'method',
-      [TypeKind.Message]: 'message'
+      [TypeKind.Method]: 'method'
     }
     return kindMap[props.type.kind] || 'unknown'
   })
@@ -152,10 +160,17 @@
   const isSimpleType = computed(() => {
     const simpleKinds = [
       TypeKind.Void,
-      TypeKind.UnsignedInteger,
-      TypeKind.SignedInteger,
-      TypeKind.FloatingPoint,
       TypeKind.Boolean,
+      TypeKind.UnsignedInteger8,
+      TypeKind.SignedInteger8,
+      TypeKind.UnsignedInteger16,
+      TypeKind.SignedInteger16,
+      TypeKind.UnsignedInteger32,
+      TypeKind.SignedInteger32,
+      TypeKind.UnsignedInteger64,
+      TypeKind.SignedInteger64,
+      TypeKind.FloatingPoint32,
+      TypeKind.FloatingPoint64,
       TypeKind.String,
       TypeKind.Binary,
       TypeKind.Pointer

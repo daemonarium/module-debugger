@@ -164,8 +164,7 @@
 
     const types = module.value.rpcDescription.getTypes()
     return types.filter(type => {
-      // Check if it's an object type
-      if (type.kind !== TypeKind.Object) {
+      if (type.kind !== TypeKind.Object && type.kind !== TypeKind.DynamicObject) {
         return false
       }
 
@@ -194,24 +193,40 @@
     }
   }
 
+  const INTEGER_KINDS: TypeKind[] = [
+    TypeKind.UnsignedInteger8, TypeKind.SignedInteger8,
+    TypeKind.UnsignedInteger16, TypeKind.SignedInteger16,
+    TypeKind.UnsignedInteger32, TypeKind.SignedInteger32,
+    TypeKind.UnsignedInteger64, TypeKind.SignedInteger64
+  ]
+  const FLOAT_KINDS: TypeKind[] = [TypeKind.FloatingPoint32, TypeKind.FloatingPoint64]
+
   function getTypePlaceholder(type: TypeDescription): string {
     const kindMap: Record<TypeKind, string> = {
       [TypeKind.Void]: '',
-      [TypeKind.UnsignedInteger]: '0',
-      [TypeKind.SignedInteger]: '0',
-      [TypeKind.FloatingPoint]: '0.0',
       [TypeKind.Boolean]: 'true',
+      [TypeKind.UnsignedInteger8]: '0',
+      [TypeKind.SignedInteger8]: '0',
+      [TypeKind.UnsignedInteger16]: '0',
+      [TypeKind.SignedInteger16]: '0',
+      [TypeKind.UnsignedInteger32]: '0',
+      [TypeKind.SignedInteger32]: '0',
+      [TypeKind.UnsignedInteger64]: '0',
+      [TypeKind.SignedInteger64]: '0',
+      [TypeKind.FloatingPoint32]: '0.0',
+      [TypeKind.FloatingPoint64]: '0.0',
       [TypeKind.String]: '""',
       [TypeKind.Binary]: 'base64...',
       [TypeKind.Enum]: 'enum value',
       [TypeKind.Array]: '[]',
+      [TypeKind.Map]: '{}',
       [TypeKind.Object]: '{}',
       [TypeKind.DynamicObject]: '{}',
+      [TypeKind.Message]: 'message',
+      [TypeKind.Exception]: 'exception',
       [TypeKind.Pointer]: 'pointer',
-      [TypeKind.Map]: '{}',
       [TypeKind.Function]: 'function',
-      [TypeKind.Method]: 'method',
-      [TypeKind.Message]: 'message'
+      [TypeKind.Method]: 'method'
     }
     return kindMap[type.kind] || ''
   }
@@ -260,9 +275,11 @@
               paramValue = paramStr
             } else if (param.type.kind === TypeKind.Boolean) {
               paramValue = paramStr === 'true' || paramStr === '1'
-            } else if (param.type.kind === TypeKind.UnsignedInteger || param.type.kind === TypeKind.SignedInteger) {
-              paramValue = Number(paramStr) || 0
-            } else if (param.type.kind === TypeKind.FloatingPoint) {
+            } else if (INTEGER_KINDS.includes(param.type.kind)) {
+              paramValue = param.type.kind === TypeKind.UnsignedInteger64 || param.type.kind === TypeKind.SignedInteger64
+                ? BigInt(paramStr || '0')
+                : (Number(paramStr) || 0)
+            } else if (FLOAT_KINDS.includes(param.type.kind)) {
               paramValue = parseFloat(paramStr) || 0
             } else {
               paramValue = paramStr
