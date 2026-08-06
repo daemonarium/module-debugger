@@ -8,7 +8,7 @@ Mark items `[x]` only when the **done** criterion is met.
 
 ## 1. Spec
 
-- [x] [`RECORDING_DEBUGGER.md`](./RECORDING_DEBUGGER.md) covers replay semantics (stimulus / expect / topology), `.waosrec` mapping, ReplayRuntime, UI direction, and recording pipeline (BIND events, registry APIs, store `put_blob`, recorder capture)
+- [x] [`RECORDING_DEBUGGER.md`](./RECORDING_DEBUGGER.md) covers replay semantics (stimulus / expect / topology), `.waosrec` mapping, ReplayRuntime, UI direction, and recording pipeline (BIND events, registry APIs, store topology messages, recorder capture)
 - [x] This `TODO.md` exists with phased checkboxes
 
 **Done when:** both docs are in `module-debugger/` and linked from the package README.
@@ -50,21 +50,21 @@ Mark items `[x]` only when the **done** criterion is met.
 
 ---
 
-## 5. Debug-store `put_blob` + layout
+## 5. Debug-store topology messages + layout
 
-- [ ] `debug_session.put_blob(relative_path, binary)` writing under `sessions/<id>/`
-- [ ] Document files: `bindings.json`, `registry.<pid>.<sock>.bin`
-- [ ] ts-test: put_blob then read back via fs
+- [x] `debug_bindings_event` + payload → `bindings.json`; `debug_registry_event { process_id, socket_id }` + payload → `registry.<pid>.<sock>.bin`
+- [x] Document files: `bindings.json`, `registry.<pid>.<sock>.bin`
+- [x] ts-test: send both messages, read back via fs; registry overwrite replaces file
 
-**Done when:** store test writes and reads a blob path.
+**Done when:** store test writes and reads topology files.
 
 ---
 
 ## 6. Recorder capture + BIND refresh
 
 - [ ] Include `BIND` in monitor flags used for recording ([`DESIGN.md`](../recorder/DESIGN.md) + implementation)
-- [ ] After first complete save anchor: `list_socket_bindings` + `get_rpc_description` → `put_blob`
-- [ ] On `process_bind_event` / `process_unbind_event`: keep opaque frame in `io_bytes`; refresh peer registry blob on bind
+- [ ] After first complete save anchor: `list_socket_bindings` + `get_rpc_description` → `debug_bindings_event` / `debug_registry_event`
+- [ ] On `process_bind_event` / `process_unbind_event`: keep opaque frame in `io_bytes`; refresh peer registry via `debug_registry_event` on bind
 - [ ] Synthetic and/or e2e: files present after start; mid-session host bind → event in `io.bin` + new registry file
 
 **Done when:** recorder e2e (or equivalent) asserts bindings + registry files and mid-session bind capture.

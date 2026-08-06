@@ -199,11 +199,11 @@ sequenceDiagram
     Ker->>Peer: same for peer
     Ker-->>Rec: binary registry
   end
-  Rec->>Rec: put_blob bindings and registries
+  Rec->>Rec: debug_bindings_event and debug_registry_event to store
   Note over Ker,Rec: Mid-session bind
   Ker->>Rec: process_bind_event on monitor socket
   Rec->>Shield: get_rpc_description(newPeer, peerSock)
-  Rec->>Rec: put_blob new registry
+  Rec->>Rec: debug_registry_event to store
 ```
 
 ### 6.1 Monitor flag and events: BIND
@@ -268,24 +268,30 @@ Missing export / empty registry → empty binary; session continues. Manifest / 
 
 Pass-through for `list_socket_bindings` and `get_rpc_description` (RPC registration, clients, README, ts-test). Monitor BIND uses the existing `monitor` path; no new shield method for bind events.
 
-### 6.4 debug-store: `put_blob`
+### 6.4 debug-store: topology messages
 
-Add a narrow session API:
+Session channel messages (same pattern as snapshot/io: header + trailing payload → immediate disk write). Store owns paths; no generic path API.
 
 ```text
-debug_session.put_blob(relative_path, binary) → void
+debug_bindings_event { reserved }
+  + payload → sessions/<id>/bindings.json          (CREATE|WRITE|TRUNCATE)
+
+debug_registry_event { process_id, socket_id }
+  + payload → sessions/<id>/registry.<pid>.<sock>.bin  (CREATE|WRITE|TRUNCATE)
 ```
 
-Writes under `sessions/<id>/` (e.g. `bindings.json`, `registry.3.0.bin`). Used for registries and any small sidecar the packer needs. Prefer this over inventing new monitor message types for metadata.
+- Bindings payload: file bytes (typically UTF-8 JSON); store does not parse.
+- Registry payload: raw `type_registry` binary; empty payload → empty file (`registry_status: missing` is for packer/debugger).
+- Repeated events for the same path overwrite (not append). Truncating writes are serialized in-session so back-to-back registry refreshes cannot interleave.
 
 ### 6.5 Recorder capture
 
 After the first complete save anchor in `start_recording` ([`recorder/src/recording.cpp`](../recorder/src/recording.cpp)):
 
 1. Monitor config includes `BIND`.
-2. `list_socket_bindings(target)` → write `bindings.json` via `put_blob`.
-3. For each unique `(pid, sock)` among the target’s bound sockets and peers → `get_rpc_description` → `registry.<pid>.<sock>.bin`.
-4. While appending monitor frames: keep opaque append; when a frame is a bind/unbind event (decoded with the kernel event registry), refresh peer registry via `get_rpc_description` + `put_blob`. On unbind, update in-memory topology; keep existing registry blobs (decode remains idempotent).
+2. `list_socket_bindings(target)` → `debug_bindings_event` + JSON payload.
+3. For each unique `(pid, sock)` among the target’s bound sockets and peers → `get_rpc_description` → `debug_registry_event` + registry bytes.
+4. While appending monitor frames: keep opaque append; when a frame is a bind/unbind event (decoded with the kernel event registry), refresh peer registry via `get_rpc_description` + `debug_registry_event`. On unbind, update in-memory topology; keep existing registry files (decode remains idempotent).
 
 BIND/UNBIND frames stay in `io.bin` so the timeline can show topology changes. They should be counted toward the rotate byte threshold like other retained I/O frames (or documented if excluded — default: **include**).
 
@@ -318,7 +324,7 @@ See [`TODO.md`](./TODO.md). Summary:
 2. Kernel BIND events + README fix.
 3. Kernel `list_socket_bindings` / `get_rpc_description`.
 4. Shield pass-through.
-5. Store `put_blob` + session file layout.
+5. Store topology messages (`debug_bindings_event` / `debug_registry_event`) + session file layout.
 6. Recorder capture + BIND refresh.
 7. Packer `.waosrec`.
 8. ReplayRuntime + headless tests.
