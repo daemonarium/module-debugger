@@ -1,6 +1,13 @@
 # module-debugger
 
-This template should help get you started developing with Vue 3 in Vite.
+Vue 3 + Vite UI for inspecting WASM modules.
+
+## Recording debugger (product focus)
+
+- Spec: [`RECORDING_DEBUGGER.md`](./RECORDING_DEBUGGER.md) — dump replay without kernel, `.waosrec`, registries, BIND topology events
+- Checklist: [`TODO.md`](./TODO.md)
+
+The current UI still centers on **Interactive** load-and-call (legacy). Recording mode is specified above; implementation follows `TODO.md`.
 
 ## Recommended IDE Setup
 

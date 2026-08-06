@@ -7,6 +7,8 @@
 </template>
 
 <script setup lang="ts">
+  // Product focus: recording dump debugger — see ../RECORDING_DEBUGGER.md and ../TODO.md
+  // This App still hosts the legacy Interactive ModuleDebugger (load WASM + call methods).
   import ModuleSource from './components/ModuleSource.vue'
   import ModuleDebugger from './components/ModuleDebugger.vue'
   import Toast from 'primevue/toast'
