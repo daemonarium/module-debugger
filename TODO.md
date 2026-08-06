@@ -43,8 +43,8 @@ Mark items `[x]` only when the **done** criterion is met.
 
 ## 4. Kernel-shield pass-through
 
-- [ ] Expose `list_socket_bindings` and `get_rpc_description` on shield RPC ([`kernel_rpc.hpp`](../kernel-shield/src/kernel_rpc.hpp), API, registration)
-- [ ] README + ts-test: calls reach kernel mock / real kernel
+- [x] Expose `list_socket_bindings` and `get_rpc_description` on shield RPC ([`kernel_rpc.hpp`](../kernel-shield/src/kernel_rpc.hpp), API, registration)
+- [x] README + ts-test: calls reach kernel mock / real kernel
 
 **Done when:** shield ts-test asserts both methods.
 
