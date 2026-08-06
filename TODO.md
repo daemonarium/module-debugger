@@ -30,12 +30,12 @@ Mark items `[x]` only when the **done** criterion is met.
 
 ## 3. Kernel API — bindings and registries
 
-- [ ] `list_socket_bindings(process_id) → vector<{ socket, peer_process, peer_socket, direction }>` from `socketConnections`
-- [ ] `get_rpc_description(process_id, socket_id) → binary`
-  - ModuleProcess: `readRawRpcDescription(socket)` (not single-socket cache)
-  - LocalProcess: serialize registry or empty binary
-- [ ] Method ids appended at end of kernel RPC list; stubs / codegen updated
-- [ ] Tests: known bind graph listed; module with `rpc_description` returns non-empty bytes; missing → empty, no throw
+- [x] `list_socket_bindings(process_id) → vector<{ socket, peer_process, peer_socket, direction }>` from `socketConnections`
+- [x] `get_rpc_description(process_id, socket_id) → binary`
+  - ModuleProcess: `readRawRpcDescriptionOrEmpty(socket)` (not single-socket cache; soft empty on failure)
+  - LocalProcess: `serializeTypeRegistry` or empty binary
+- [x] Method ids appended at end of kernel RPC list; stubs / codegen updated
+- [x] Tests: known bind graph listed; module with `rpc_description` returns non-empty bytes; missing → empty, no throw
 
 **Done when:** ts-kernel tests cover both methods.
 
