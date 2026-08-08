@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-08T06:07:06.178Z",
+  "generatedAt": "2026-08-08T12:29:45.092Z",
   "fixtures": [
     {
       "id": "dbg_echo",
@@ -106,6 +106,24 @@
       ],
       "notes": "Mid-session bind without RPC; allowZeroExpects",
       "allowZeroExpects": true
+    },
+    {
+      "id": "dbg_token",
+      "file": "dbg_token.waosrec",
+      "title": "Token balances in dbg_kv (shield topology)",
+      "complexity": 7,
+      "api": [
+        "name",
+        "symbol",
+        "mint",
+        "balanceOf"
+      ],
+      "expects": [
+        "stimulus",
+        "expect",
+        "topology"
+      ],
+      "notes": "Spawned via kernel-shield; peer RPC to dbg_kv on socket 2"
     }
   ]
 }

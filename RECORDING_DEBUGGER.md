@@ -260,7 +260,7 @@ Missing export / empty registry → empty binary; session continues. Manifest / 
 
 ### 6.3 Kernel-shield
 
-Pass-through for `list_socket_bindings` and `get_rpc_description` (RPC registration, clients, README, ts-test). Monitor BIND uses the existing `monitor` path; no new shield method for bind events.
+Pass-through for `list_socket_bindings` and `get_rpc_description` (RPC registration, clients, README, ts-test), except **`get_rpc_description(1, socket)`**: kernel-shield answers its own USER / KERNEL_API faces from the local `rpc_description` export (shield is not in its `processes` table). Monitor BIND uses the existing `monitor` path; no new shield method for bind events.
 
 ### 6.4 debug-store: topology messages
 
@@ -323,6 +323,7 @@ Behaviour:
 - **Messages** tab: reassembled length-prefixed RPC messages from Copy IN/OUT payloads (`buildMessageStream`). Each row is one wire message with socket, direction, `request_id`, method signature summary, and return type. Correlated requests and responses are linked via color-coding on `request_id`. Select a message to view the fully typed `ValueTreeViewer` for parameters/return values alongside the hex dump and wire header. Spans map back to event indices for **Jump / Show in Events**.
 - **API** tab: browse all captured type registries (dropdown when multiple), object types and method signatures (read-only; no call) via shared `RegistryTypeBrowser`.
 - **Environment** tab: expandable socket bindings (`local ↔ peer`, direction labels); expanded row shows Local/Peer registries with the same browser; unbound keys under “Other registries”.
+- Sample **`dbg_token`**: typical multi-process dump (host USER + KERNEL_API↔shield + peer `dbg_kv`); contrasts with single-process `dbg_echo` / bind-only `dbg_topology`.
 - Scrubber + step; seek restores snapshot + prefix replay (`ReplayRuntime.seek`) — shared above tabs.
 - Surface replay failures (OUT mismatch) inline.
 - DevTools: `globalThis.replay` via `installReplayDevtools`.

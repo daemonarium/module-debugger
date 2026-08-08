@@ -247,6 +247,50 @@ export function buildDbgShopRegistry(): TypeRegistry {
   return registry
 }
 
+/** Host TypeRegistry matching dbg_token.wasm (balances stored in peer dbg_kv). */
+export function buildDbgTokenRegistry(): TypeRegistry {
+  const registry = new TypeRegistry()
+  const string_ = requireType(registry, 'string')
+  const u64 = requireType(registry, 'uint64')
+  const void_ = requireType(registry, 'void')
+  const name = TypeDescription.create({
+    name: 'DbgToken.name',
+    kind: TypeKind.Function,
+    members: [],
+    item: string_,
+  })
+  const symbol = TypeDescription.create({
+    name: 'DbgToken.symbol',
+    kind: TypeKind.Function,
+    members: [],
+    item: string_,
+  })
+  const mint = TypeDescription.create({
+    name: 'DbgToken.mint',
+    kind: TypeKind.Function,
+    members: [
+      { name: 'addr', type: string_, annotations: [] },
+      { name: 'amount', type: u64, annotations: [] },
+    ],
+    item: void_,
+  })
+  const balanceOf = TypeDescription.create({
+    name: 'DbgToken.balanceOf',
+    kind: TypeKind.Function,
+    members: [{ name: 'addr', type: string_, annotations: [] }],
+    item: u64,
+  })
+  registerApi(registry, 'DbgToken', [
+    { name: 'name', type: name },
+    { name: 'symbol', type: symbol },
+    { name: 'mint', type: mint },
+    { name: 'balanceOf', type: balanceOf },
+  ])
+  registry.assignMethodIds()
+  ensureRpcTypesInRegistry(registry)
+  return registry
+}
+
 export type SampleModuleId =
   | 'dbg_echo'
   | 'dbg_hello'
@@ -254,6 +298,7 @@ export type SampleModuleId =
   | 'dbg_kv'
   | 'dbg_stats'
   | 'dbg_shop'
+  | 'dbg_token'
 
 export interface SampleModuleSpec {
   id: SampleModuleId
@@ -321,3 +366,14 @@ export const SAMPLE_MODULE_SPECS: SampleModuleSpec[] = [
     buildRegistry: buildDbgShopRegistry,
   },
 ]
+
+/** Multi-process fixture (not in SAMPLE_MODULE_SPECS single-module loop). */
+export const DBG_TOKEN_SPEC: SampleModuleSpec = {
+  id: 'dbg_token',
+  title: 'Token balances in dbg_kv (shield topology)',
+  complexity: 7,
+  api: ['name', 'symbol', 'mint', 'balanceOf'],
+  expects: ['stimulus', 'expect', 'topology'],
+  notes: 'Spawned via kernel-shield; peer RPC to dbg_kv on socket 2',
+  buildRegistry: buildDbgTokenRegistry,
+}

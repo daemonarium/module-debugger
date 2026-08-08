@@ -1,10 +1,10 @@
 #!/usr/bin/env npx tsx
 /**
  * Generate module-debugger/fixtures/recordings/*.waosrec for all dbg_* samples
- * plus dbg_topology (bind-only, allowZeroExpects).
+ * plus dbg_topology (bind-only) and dbg_token (shield + kv peer).
  *
  * Prerequisites:
- *   cmake --build cmake-build-emscripten --target dbg_echo dbg_hello dbg_counter dbg_kv dbg_stats dbg_shop
+ *   cmake --build cmake-build-emscripten --target dbg_echo dbg_hello dbg_counter dbg_kv dbg_stats dbg_shop dbg_token
  *   cmake --build build --target waosrec
  */
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -12,8 +12,10 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   SAMPLE_MODULE_SPECS,
+  DBG_TOKEN_SPEC,
   recordSampleFixture,
   recordTopologyFixture,
+  recordTokenKvFixture,
   packSession,
   withTempRoot,
   resolveWaosrecBin,
@@ -63,6 +65,24 @@ async function main() {
       expects: ['topology'],
       notes: 'Mid-session bind without RPC; allowZeroExpects',
       allowZeroExpects: true,
+    })
+  })
+
+  console.log(`\n=== Generating dbg_token (shield + dbg_kv peer) ===`)
+  await withTempRoot(async (root) => {
+    const recorded = await recordTokenKvFixture(root)
+    const outFile = 'dbg_token.waosrec'
+    const outPath = join(OUT_DIR, outFile)
+    await packSession(recorded.sessionDir, outPath, waosrecBin)
+    console.log(`Wrote ${outPath}`)
+    fixtures.push({
+      id: DBG_TOKEN_SPEC.id,
+      file: outFile,
+      title: DBG_TOKEN_SPEC.title,
+      complexity: DBG_TOKEN_SPEC.complexity,
+      api: DBG_TOKEN_SPEC.api,
+      expects: DBG_TOKEN_SPEC.expects,
+      notes: DBG_TOKEN_SPEC.notes,
     })
   })
 

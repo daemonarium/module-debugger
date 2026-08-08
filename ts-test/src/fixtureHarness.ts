@@ -14,6 +14,7 @@ import {
 import { LocalProcess, Direction } from '@wa-os/ts-kernel'
 import {
   setupWasmTargetEnvironment,
+  setupTokenKvEnvironment,
   withTempRoot,
   num,
   tick,
@@ -26,6 +27,7 @@ import {
 import { parseMonitorFrames } from '../../src/replay/frames.js'
 import {
   SAMPLE_MODULE_SPECS,
+  DBG_TOKEN_SPEC,
   type SampleModuleId,
   type SampleModuleSpec,
 } from './sampleRegistries.js'
@@ -85,10 +87,11 @@ function methodIdOf(registry: TypeRegistry, shortName: string): number {
 
 export async function injectTargetRegistry(
   sessionDir: string,
-  registry: TypeRegistry
+  registry: TypeRegistry,
+  processId: number = TARGET_ID
 ): Promise<void> {
   const bytes = serializeTypeRegistry(registry)
-  await writeFile(join(sessionDir, `registry.${TARGET_ID}.0.bin`), bytes)
+  await writeFile(join(sessionDir, `registry.${processId}.0.bin`), bytes)
 }
 
 /**
@@ -121,7 +124,7 @@ export async function preferEarliestSnapshot(sessionDir: string): Promise<void> 
 }
 
 export async function driveSample(
-  ctx: WasmTargetTestContext,
+  ctx: { targetClient: SocketRpcClient; targetRegistry: TypeRegistry },
   spec: SampleModuleSpec
 ): Promise<void> {
   const client = ctx.targetClient
@@ -173,6 +176,13 @@ export async function driveSample(
       await call('mint', 'alice', 100n)
       await call('balanceOf', 'alice')
       // Avoid transfer: replaying from a late snap is non-idempotent for balances.
+      break
+    }
+    case 'dbg_token': {
+      await call('name')
+      await call('symbol')
+      await call('mint', 'alice', 100n)
+      await call('balanceOf', 'alice')
       break
     }
     default:
@@ -287,6 +297,66 @@ async function registerWithShield(
 }
 
 /**
+ * Multi-process fixture: dbg_token spawned via shield, balances in peer dbg_kv.
+ */
+export async function recordTokenKvFixture(rootDir: string): Promise<RecordedFixture> {
+  const tokenPath = await assertWasmExists('dbg_token')
+  const kvPath = await assertWasmExists('dbg_kv')
+  const ctx = await setupTokenKvEnvironment(rootDir, {
+    tokenWasmPath: tokenPath,
+    kvWasmPath: kvPath,
+    buildTokenRegistry: DBG_TOKEN_SPEC.buildRegistry,
+  })
+  try {
+    await tick(20)
+
+    const moduleCode = await readFile(tokenPath)
+    const result = (await ctx.userClient.call(ctx.methodId('start_recording'), {
+      target_process: BigInt(ctx.tokenPid),
+      store_process: BigInt(STORE_ID),
+      session_name: 'fixture-dbg_token',
+      labels: {
+        sample: 'dbg_token',
+        complexity: String(DBG_TOKEN_SPEC.complexity),
+        kv_pid: String(ctx.kvPid),
+      },
+      config: {
+        event_buffer_snapshot_mult: 2,
+        record_mana: false,
+        dump_on_error: true,
+      },
+      code: moduleCode,
+    })) as Record<string, unknown>
+
+    await tick(30)
+    await driveSample(ctx, DBG_TOKEN_SPEC)
+    await tick(40)
+
+    await ctx.userClient.call(ctx.methodId('dump'), result.recording_id)
+    await tick(80)
+
+    await ctx.kernel.kill(ctx.tokenPid, 'fixture-end-dbg_token')
+    await tick(80)
+
+    const storeSessionId = num(result.store_session_id)
+    const sessionDir = join(rootDir, 'sessions', String(storeSessionId))
+    await injectTargetRegistry(sessionDir, ctx.targetRegistry, ctx.tokenPid)
+    await preferEarliestSnapshot(sessionDir)
+
+    return {
+      id: 'dbg_token',
+      sessionDir,
+      storeSessionId,
+      recordingId: result.recording_id,
+      registry: ctx.targetRegistry,
+      spec: DBG_TOKEN_SPEC,
+    }
+  } finally {
+    await ctx.cleanup()
+  }
+}
+
+/**
  * Bind-only session (no RPC stimulus/expect) for topology timeline UI tests.
  * Uses dbg_echo.wasm as code payload; allowZeroExpects for pack consumers.
  */
@@ -382,4 +452,4 @@ export async function copySessionDir(src: string, dest: string): Promise<void> {
   }
 }
 
-export { SAMPLE_MODULE_SPECS, withTempRoot, tick }
+export { SAMPLE_MODULE_SPECS, DBG_TOKEN_SPEC, withTempRoot, tick }

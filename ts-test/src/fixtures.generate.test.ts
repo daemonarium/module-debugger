@@ -10,8 +10,10 @@ import {
 } from '../../src/replay/index.js'
 import {
   SAMPLE_MODULE_SPECS,
+  DBG_TOKEN_SPEC,
   recordSampleFixture,
   recordTopologyFixture,
+  recordTokenKvFixture,
   packSession,
   withTempRoot,
   resolveWaosrecBin,
@@ -79,6 +81,55 @@ describe('sample recording fixtures', function () {
       const typeRegistry = loadTypeRegistryFromBytes(await readFile(FIXTURE_REGISTRY))
       const dump = loadWaosrec(await readFile(packed), typeRegistry)
       expect(dump.code.length).to.be.greaterThan(0)
+    })
+  })
+
+  it('records dbg_token with shield topology + kv peer and replays', async () => {
+    await withTempRoot(async (root) => {
+      const recorded = await recordTokenKvFixture(root)
+      const listing = await fsp.readdir(recorded.sessionDir)
+      expect(listing.some((f) => f === 'code.wasm')).to.equal(true)
+      expect(listing.some((f) => f === 'io.bin')).to.equal(true)
+
+      const io = await readFile(join(recorded.sessionDir, 'io.bin'))
+      const frames = parseMonitorFrames(new Uint8Array(io))
+      expect(frames.some((f) => f.class === 'expect')).to.equal(true)
+
+      // Peer / kernel bindings should leave registry files or bindings snapshot
+      const regFiles = listing.filter((f) => f.startsWith('registry.'))
+      expect(regFiles.length).to.be.greaterThan(1)
+
+      const packed = join(root, 'dbg_token.waosrec')
+      await packSession(recorded.sessionDir, packed, await resolveWaosrecBin())
+
+      const typeRegistry = loadTypeRegistryFromBytes(await readFile(FIXTURE_REGISTRY))
+      const dump = loadWaosrec(await readFile(packed), typeRegistry)
+      expect(dump.bindings.bindings.length).to.be.greaterThan(1)
+
+      const target0 = dump.registries.get(`${dump.session.processId}.0`)
+      expect(target0?.length ?? 0, 'target USER registry soft-fetched').to.be.greaterThan(0)
+
+      const shieldKernelApi = [...dump.registries.entries()].find(([k, v]) => {
+        const m = /^1\.(\d+)$/.exec(k)
+        if (!m) return false
+        const sock = Number(m[1])
+        return sock > 3 && (sock & 1) === 1 && v.length > 0
+      })
+      expect(shieldKernelApi, 'non-empty shield KERNEL_API registry (1.(pid<<1)|1)').to.not.equal(
+        undefined
+      )
+
+      const runtime = await ReplayRuntime.create(dump)
+      try {
+        runtime.run()
+      } catch (error) {
+        if (error instanceof ReplayError) {
+          expect.fail(`${DBG_TOKEN_SPEC.id} replay failed: ${error.message}`)
+        }
+        throw error
+      }
+      expect(runtime.state.expectMatches).to.be.greaterThan(0)
+      expect(runtime.state.lastError).to.equal(undefined)
     })
   })
 })

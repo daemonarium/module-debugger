@@ -19,10 +19,10 @@ Then upload a `.waosrec` (or pick a session folder). Dump header + scrubber stay
 
 ### Sample recording fixtures
 
-Six `dbg_*` WASM modules + generated `.waosrec` dumps for UI testing:
+Six `dbg_*` WASM modules + `dbg_token` (shield + KV peer) + generated `.waosrec` dumps for UI testing:
 
 ```sh
-cmake --build cmake-build-emscripten --target dbg_echo dbg_hello dbg_counter dbg_kv dbg_stats dbg_shop
+cmake --build cmake-build-emscripten --target dbg_echo dbg_hello dbg_counter dbg_kv dbg_stats dbg_shop dbg_token
 cmake --build build --target waosrec
 npm run generate:recordings -w @wa-os/module-debugger
 ```

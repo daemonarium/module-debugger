@@ -166,3 +166,14 @@ Mark items `[x]` only when the **done** criterion is met.
 - [x] Docs: RECORDING_DEBUGGER / README / TODO
 
 **Done when:** viewport fills; Environment shows expandable connections with registry browsers; shell e2e green.
+
+---
+
+## 15. Typical topology fixture (`dbg_token` ↔ `dbg_kv`)
+
+- [x] `dbg_token` WASM — mint/balanceOf via peer RPC to `dbg_kv` on socket 2
+- [x] Harness `setupTokenKvEnvironment` / `spawnAndWireViaShield` (register + KERNEL_API bind)
+- [x] `recordTokenKvFixture` + generate + headless replay
+- [x] Playwright R53 Environment asserts + fixtures README / TODO
+
+**Done when:** Environment for `dbg_token.waosrec` shows host, shield KERNEL_API, and KV peer bindings with non-empty peer registry.
