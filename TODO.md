@@ -52,8 +52,8 @@ Mark items `[x]` only when the **done** criterion is met.
 
 ## 5. Debug-store topology messages + layout
 
-- [x] `debug_bindings_event` + payload → `bindings.json`; `debug_registry_event { process_id, socket_id }` + payload → `registry.<pid>.<sock>.bin`
-- [x] Document files: `bindings.json`, `registry.<pid>.<sock>.bin`
+- [x] `debug_bindings_event` + payload → `bindings.bin`; `debug_registry_event { process_id, socket_id }` + payload → `registry.<pid>.<sock>.bin`
+- [x] Document files: `bindings.bin`, `registry.<pid>.<sock>.bin`
 - [x] ts-test: send both messages, read back via fs; registry overwrite replaces file
 
 **Done when:** store test writes and reads topology files.
@@ -73,8 +73,10 @@ Mark items `[x]` only when the **done** criterion is met.
 
 ## 7. Packer `.waosrec`
 
-- [ ] Tool or library: session dir → single `.waosrec` (manifest, code, memory, events, bindings, registries)
-- [ ] Round-trip or load test: pack then logical sections readable
+- [x] Host passes target WASM in `start_recording.code` → store `code.wasm` via `debug_code_event` (no kernel/shield `get_code`)
+- [x] Session side-cars are typed binary: `meta.bin`, `snap.*.meta.bin`, `bindings.bin`
+- [x] Native CLI `waosrec pack|info` in recorder (`waosrec.hpp` format owner)
+- [x] Round-trip / e2e: pack then sections readable (`code` non-empty when passed at start)
 
 **Done when:** a known e2e session packs and sections parse.
 

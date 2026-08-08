@@ -97,11 +97,11 @@ Length-prefixed sections (or equivalent TLV/CBOR). Logical contents:
 
 | Section | Content |
 |---------|---------|
-| `manifest` | Session meta: ids, `snapshot_uid`, mana, error string, `monitor_flags`, format version, registry status summary |
-| `code` | Target WASM bytes (or content-hash + external blob reference) |
+| `manifest` | Session meta + chosen snapshot meta (`format_version`, `session_meta`, `snapshot_meta`) — typed binary |
+| `code` | Target WASM bytes from host `start_recording.code` (`code.wasm`; may be empty) |
 | `memory` | Linear memory at the dump anchor (`snap.<uid>.bin`) |
 | `events` | Opaque concatenation of length-prefixed monitor wire frames (same as `io.bin`) |
-| `bindings` | JSON snapshot of socket graph at recording start |
+| `bindings` | Typed `bindings_snapshot` (`bindings.bin`) |
 | `registries` | One binary `rpc_description` per `(process_id, socket_id)` |
 
 ### Mapping from debug-store session
@@ -109,38 +109,23 @@ Length-prefixed sections (or equivalent TLV/CBOR). Logical contents:
 Today ([`debug-store/README.md`](../debug-store/README.md)):
 
 ```text
-sessions/<id>/meta.json
+sessions/<id>/meta.bin
 sessions/<id>/snap.<uid>.bin
-sessions/<id>/snap.<uid>.meta.json
+sessions/<id>/snap.<uid>.meta.bin
 sessions/<id>/io.bin
-```
-
-Extended by the recording pipeline (§6–7):
-
-```text
-sessions/<id>/bindings.json
+sessions/<id>/bindings.bin
 sessions/<id>/registry.<pid>.<sock>.bin
+sessions/<id>/code.wasm
 ```
 
-Packer merges these into `.waosrec`. Until packer exists, the debugger may open a session directory with the same logical fields.
+Packer (`waosrec pack`, owner = recorder) merges these into a single typed `.waosrec` blob (highest `snapshot_uid`). The host passes target WASM in `start_recording.code` — there is no kernel/shield `get_code`.
 
-### `bindings.json` (sketch)
+### `bindings.bin`
 
-```json
-{
-  "process_id": 3,
-  "bindings": [
-    {
-      "socket": 0,
-      "peer_process": 5,
-      "peer_socket": 2,
-      "direction": "BOTH"
-    }
-  ]
-}
-```
+Serialized `bindings_snapshot`:
 
-`direction` uses the same enum as `kernel.bind` (`NONE` / `IN` / `OUT` / `BOTH`), relative to the **recorded target** for that row’s `socket`.
+- `process_id` — recorded target
+- `bindings[]` — `{ socket, peer_process, peer_socket, direction }` with `kernel.direction` enum (`NONE`/`IN`/`OUT`/`BOTH`)
 
 ### Registry blobs
 
@@ -274,14 +259,18 @@ Session channel messages (same pattern as snapshot/io: header + trailing payload
 
 ```text
 debug_bindings_event { reserved }
-  + payload → sessions/<id>/bindings.json          (CREATE|WRITE|TRUNCATE)
+  + payload → sessions/<id>/bindings.bin          (CREATE|WRITE|TRUNCATE)
 
 debug_registry_event { process_id, socket_id }
   + payload → sessions/<id>/registry.<pid>.<sock>.bin  (CREATE|WRITE|TRUNCATE)
+
+debug_code_event { reserved }
+  + payload → sessions/<id>/code.wasm              (CREATE|WRITE|TRUNCATE)
 ```
 
-- Bindings payload: file bytes (typically UTF-8 JSON); store does not parse.
+- Bindings payload: serialized `bindings_snapshot`; store does not parse.
 - Registry payload: raw `type_registry` binary; empty payload → empty file (`registry_status: missing` is for packer/debugger).
+- Code payload: host-supplied WASM bytes from `start_recording.code`.
 - Repeated events for the same path overwrite (not append). Truncating writes are serialized in-session so back-to-back registry refreshes cannot interleave.
 
 ### 6.5 Recorder capture
@@ -289,15 +278,16 @@ debug_registry_event { process_id, socket_id }
 After the first complete save anchor in `start_recording` ([`recorder/src/recording.cpp`](../recorder/src/recording.cpp)):
 
 1. Monitor config includes `BIND`.
-2. `list_socket_bindings(target)` → `debug_bindings_event` + JSON payload.
-3. For each unique `(pid, sock)` among the target’s bound sockets and peers → `get_rpc_description` → `debug_registry_event` + registry bytes.
-4. While appending monitor frames: keep opaque append; when a frame is a bind/unbind event (decoded with the kernel event registry), refresh peer registry via `get_rpc_description` + `debug_registry_event`. On unbind, update in-memory topology; keep existing registry files (decode remains idempotent).
+2. `list_socket_bindings(target)` → `debug_bindings_event` + `bindings_snapshot` bytes.
+3. Non-empty `start_recording.code` → `debug_code_event` → `code.wasm` (then clear in-RAM copy).
+4. For each unique `(pid, sock)` among the target’s bound sockets and peers → `get_rpc_description` → `debug_registry_event` + registry bytes.
+5. While appending monitor frames: keep opaque append; when a frame is a bind/unbind event (decoded with the kernel event registry), refresh peer registry via `get_rpc_description` + `debug_registry_event`. On unbind, update in-memory topology; keep existing registry files (decode remains idempotent).
 
 BIND/UNBIND frames stay in `io.bin` so the timeline can show topology changes. They should be counted toward the rotate byte threshold like other retained I/O frames (or documented if excluded — default: **include**).
 
 ### 6.6 Tests (when implementing)
 
-- After start / dump: `bindings.json` and at least `registry.<target>.0.bin` exist (e.g. mock-module echo).
+- After start / dump: `bindings.bin`, `code.wasm` (when code was passed), and at least `registry.<target>.0.bin` exist (e.g. mock-module echo).
 - Host `bind` mid-recording → `process_bind_event` present in `io.bin`; new `registry.<peer>.*` appears.
 - Later: headless ReplayRuntime on an e2e dump asserts OUT; decode finds RPC using registries.
 
