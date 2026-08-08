@@ -7,7 +7,7 @@ Vue 3 + Vite UI for inspecting WASM modules.
 - Spec: [`RECORDING_DEBUGGER.md`](./RECORDING_DEBUGGER.md) — dump replay without kernel, `.waosrec`, registries, BIND topology events
 - Checklist: [`TODO.md`](./TODO.md)
 - Headless runtime: [`src/replay/`](./src/replay/) — load session / `.waosrec`, apply stimulus, assert Copy OUT
-- UI: Recording is the default mode in `App.vue` (Interactive remains behind the mode switch)
+- UI: full-height **app shell** in `App.vue` (Recording only; Interactive components are not mounted)
 
 ### Open a dump in the UI
 
@@ -15,7 +15,7 @@ Vue 3 + Vite UI for inspecting WASM modules.
 npm run dev -w @wa-os/module-debugger
 ```
 
-Then upload a `.waosrec` (or pick a session folder). **Events** tab: timeline / scrubber / hex. **Messages** tab: reassembled RPC wire messages (IN/OUT per socket) with jump back to events. DevTools: `globalThis.replay`.
+Then upload a `.waosrec` (or pick a session folder). Dump header + scrubber stay at the top; tabs fill the rest of the viewport. **Events**: timeline / hex. **Messages**: reassembled RPC wire messages (IN/OUT per socket) with jump back to events + `request_id` correlation, ValueTree parameter/return decode. **API**: browse all type registries / method signatures. **Environment**: expandable socket bindings with local/peer registry browsers. DevTools: `globalThis.replay`.
 
 ### Sample recording fixtures
 
@@ -43,7 +43,7 @@ Coverage: frame/decode unit tests + e2e mock-module echo dump → `ReplayRuntime
 
 ### UI e2e (Playwright)
 
-Automates Recording (and Interactive smoke) in Chromium. Does **not** replace Mocha headless tests.
+Automates Recording UI in Chromium (Interactive smoke specs are skipped while Interactive is hidden). Does **not** replace Mocha headless tests.
 
 ```sh
 # Prerequisites
@@ -52,7 +52,7 @@ npx playwright install chromium                         # once per machine
 
 # From repo root or workspace
 npm run test:e2e -w @wa-os/module-debugger
-# Interactive UI mode:
+# Playwright UI mode:
 npm run test:e2e:ui -w @wa-os/module-debugger
 ```
 

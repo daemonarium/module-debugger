@@ -1,8 +1,8 @@
 <template>
-  <div class="type-viewer py-1">
+  <div class="type-viewer" :class="{ 'py-1': !compact }">
     <div class="flex items-center gap-2">
       <Button
-        v-if="hasExpandableContent"
+        v-if="hasExpandableContent && !compact"
         :icon="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
         text
         rounded
@@ -11,10 +11,11 @@
         class="p-0 w-4 h-4"
       />
       <span class="font-mono text-sm">
-        <span class="font-semibold">{{ typeName }}</span>
-        <span v-if="typeKind" class="text-gray-500 ml-1">({{ typeKind }})</span>
+        <span class="font-semibold" :class="{ 'text-xs': compact }">{{ compactText }}</span>
+        <span v-if="showKind && typeKind && !compact" class="text-gray-500 ml-1">({{ typeKind }})</span>
       </span>
       <Tag
+        v-if="!compact"
         v-for="annotation in typeAnnotations"
         :key="getAnnotationKey(annotation)"
         :value="getAnnotationName(annotation)"
@@ -23,7 +24,7 @@
       />
     </div>
     
-    <div v-if="expanded && hasExpandableContent" class="ml-6 mt-2 space-y-2">
+    <div v-if="expanded && hasExpandableContent && !compact" class="ml-6 mt-2 space-y-2">
       <!-- Enum members -->
       <div v-if="type.enumMembers && type.enumMembers.length > 0" class="ml-4">
         <div class="text-xs text-gray-500 mb-1">Enum values:</div>
@@ -105,12 +106,18 @@
   import Tag from 'primevue/tag'
   import type { TypeDescription, TypeRegistry, TypedValue } from '@wa-os/ts-rpc'
   import { TypeKind } from '@wa-os/ts-rpc'
+  import { formatTypeShort } from './recording/formatTypeShort.js'
 
-  const props = defineProps<{
+  const props = withDefaults(defineProps<{
     type: TypeDescription
     registry: TypeRegistry
     expandedTypes?: Set<string>
-  }>()
+    compact?: boolean
+    showKind?: boolean
+  }>(), {
+    compact: false,
+    showKind: true,
+  })
 
   const emit = defineEmits<{
     toggleExpand: [typeName: string]
@@ -120,6 +127,7 @@
   const expanded = computed(() => expandedTypesSet.value.has(props.type.name))
 
   const typeName = computed(() => props.type.name)
+  const compactText = computed(() => props.compact ? formatTypeShort(props.type) : typeName.value)
 
   function toggleExpand() {
     emit('toggleExpand', props.type.name)

@@ -1,6 +1,6 @@
 <template>
-  <div data-testid="timeline" class="timeline flex flex-col gap-2 min-h-0">
-    <div class="flex items-center gap-2 flex-wrap">
+  <div data-testid="timeline" class="timeline flex flex-col gap-2 h-full min-h-0">
+    <div class="flex items-center gap-2 flex-wrap shrink-0">
       <label class="text-sm font-medium">Socket</label>
       <div data-testid="socket-filter">
         <Select
@@ -16,7 +16,7 @@
         {{ filtered.length }} / {{ frames.length }} frames
       </span>
     </div>
-    <div class="border border-gray-200 rounded overflow-auto max-h-80">
+    <div class="border border-gray-200 rounded overflow-auto flex-1 min-h-0">
       <table class="w-full text-xs font-mono">
         <thead class="bg-gray-50 sticky top-0">
           <tr class="text-left">

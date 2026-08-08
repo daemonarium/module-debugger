@@ -6,8 +6,8 @@ import {
   ensureRpcTypesInRegistry,
   registerDynamicCodecs,
   type TypeRegistry,
+  registerMessageCodecs
 } from '@wa-os/ts-rpc'
-import { registerMessageCodecs } from '@wa-os/ts-rpc/src/valueSerialization.js'
 import type { TopologyBinding } from './types.js'
 import { registryKey } from './types.js'
 import { loadTypeRegistryFromBytes } from './sessionFiles.js'

@@ -10,6 +10,8 @@ import {
   parseMonitorFrames,
   buildMessageStream,
   extractCompleteMessages,
+  messageAtEventIndex,
+  nextMessage,
   type DecodedFrame,
   type BindingsSnapshotView,
 } from '../../src/replay/index.js'
@@ -139,5 +141,24 @@ describe('messageStream', () => {
     expect(complete.some((m) => m.direction === 'out')).to.equal(true)
     const decoded = complete.filter((m) => m.typeName)
     expect(decoded.length).to.be.greaterThan(0)
+  })
+
+  it('messageAtEventIndex and nextMessage navigate the stream', () => {
+    const a = framedRpc(new Uint8Array([1]))
+    const b = framedRpc(new Uint8Array([2]))
+    const frames = [
+      copyFrame(0, direction.IN, a),
+      copyFrame(0, direction.OUT, b),
+    ]
+    const stream = buildMessageStream(frames, 5, emptyBindings(), new Map())
+    const complete = stream.filter((m) => !m.incomplete)
+    expect(complete.length).to.be.greaterThanOrEqual(2)
+
+    const first = complete[0]!
+    const second = complete[1]!
+    expect(messageAtEventIndex(stream, first.frameIndices[0]!)?.id).to.equal(first.id)
+    expect(messageAtEventIndex(stream, second.frameIndices[0]!)?.id).to.equal(second.id)
+    expect(nextMessage(stream, first.id)?.id).to.equal(second.id)
+    expect(nextMessage(stream, second.id)).to.equal(null)
   })
 })

@@ -38,7 +38,16 @@ export {
 export {
   buildMessageStream,
   extractCompleteMessages,
+  messageAtEventIndex,
+  nextMessage,
+  steppableMessages,
   type StreamMessage,
   type StreamDirection,
   type MessageByteSpan,
 } from './messageStream.js'
+export {
+  enrichRpcMessages,
+  type EnrichedStreamMessage,
+  type RpcEnrichment,
+  type RpcCallArg,
+} from './rpcEnrich.js'

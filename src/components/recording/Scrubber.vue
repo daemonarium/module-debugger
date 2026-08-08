@@ -15,7 +15,7 @@
         label="Step"
         icon="pi pi-step-forward"
         size="small"
-        :disabled="busy || atEnd"
+        :disabled="busy || isAtEnd"
         @click="$emit('step')"
       />
       <Button
@@ -24,11 +24,12 @@
         icon="pi pi-play"
         size="small"
         severity="success"
-        :disabled="busy || atEnd"
+        :disabled="busy || isAtEnd"
         @click="$emit('run')"
       />
       <span data-testid="scrubber-index" class="text-sm font-mono text-gray-600">
         {{ index }} / {{ total }}
+        <span v-if="unitLabel" class="text-gray-400"> {{ unitLabel }}</span>
       </span>
       <i v-if="busy" data-testid="scrubber-busy" class="pi pi-spin pi-spinner text-gray-500" />
     </div>
@@ -49,11 +50,19 @@
   import Button from 'primevue/button'
   import Slider from 'primevue/slider'
 
-  const props = defineProps<{
-    index: number
-    total: number
-    busy: boolean
-  }>()
+  const props = withDefaults(
+    defineProps<{
+      index: number
+      total: number
+      busy: boolean
+      unitLabel?: string
+      /** When set, overrides default index >= total end check */
+      atEnd?: boolean
+      /** Slider max; defaults to total (events) or total-1 when messageMode */
+      sliderMaxOverride?: number
+    }>(),
+    { unitLabel: '', atEnd: undefined, sliderMaxOverride: undefined }
+  )
 
   const emit = defineEmits<{
     seek: [index: number]
@@ -62,8 +71,17 @@
     reset: []
   }>()
 
-  const atEnd = computed(() => props.index >= props.total || props.total === 0)
-  const sliderMax = computed(() => Math.max(props.total, 0))
+  const isAtEnd = computed(() => {
+    if (props.atEnd !== undefined) return props.atEnd || props.total === 0
+    return props.index >= props.total || props.total === 0
+  })
+
+  const sliderMax = computed(() => {
+    if (props.sliderMaxOverride !== undefined) {
+      return Math.max(props.sliderMaxOverride, 0)
+    }
+    return Math.max(props.total, 0)
+  })
 
   function onChange(value: number | number[]) {
     const v = Array.isArray(value) ? value[0] : value

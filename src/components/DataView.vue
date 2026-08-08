@@ -50,8 +50,12 @@
                   @toggle-expand="handleToggleExpand"
                   class="mt-1"
                 />
-                <div class="mt-1 text-sm text-gray-600 font-mono bg-gray-50 p-2 rounded">
-                  Value: {{ formatValue(paramValues[index]) }}
+                <div class="mt-1 text-sm bg-gray-50 p-2 rounded">
+                  <ValueTreeViewer
+                    :value="paramValues[index]"
+                    :type="param.type"
+                    :registry="registry"
+                  />
                 </div>
               </div>
             </div>
@@ -68,8 +72,12 @@
           :expanded-types="expandedTypes"
           @toggle-expand="handleToggleExpand"
         />
-        <div v-if="deserializedValue !== undefined" class="mt-2 text-sm text-gray-600 font-mono bg-gray-50 p-2 rounded">
-          Value: {{ formatValue(deserializedValue) }}
+        <div v-if="deserializedValue !== undefined" class="mt-2 text-sm bg-gray-50 p-2 rounded">
+          <ValueTreeViewer
+            :value="deserializedValue"
+            :type="type"
+            :registry="registry"
+          />
         </div>
       </div>
 
@@ -81,8 +89,12 @@
         </div>
         <div v-if="deserializedValue !== null && deserializedValue !== undefined" class="mt-2">
           <div class="text-xs font-semibold text-gray-600 mb-1">Deserialized as {{ type.name }}:</div>
-          <div class="font-mono text-sm bg-gray-50 p-2 rounded border border-gray-200">
-            {{ formatValue(deserializedValue) }}
+          <div class="text-sm bg-gray-50 p-2 rounded border border-gray-200">
+            <ValueTreeViewer
+              :value="deserializedValue"
+              :type="type"
+              :registry="registry"
+            />
           </div>
         </div>
       </div>
@@ -95,8 +107,12 @@
           :expanded-types="expandedTypes"
           @toggle-expand="handleToggleExpand"
         />
-        <div v-if="deserializedValue !== undefined" class="mt-2 text-sm text-gray-600 font-mono bg-gray-50 p-2 rounded">
-          Value: {{ formatValue(deserializedValue) }}
+        <div v-if="deserializedValue !== undefined" class="mt-2 text-sm bg-gray-50 p-2 rounded">
+          <ValueTreeViewer
+            :value="deserializedValue"
+            :type="type"
+            :registry="registry"
+          />
         </div>
       </div>
     </div>
@@ -112,6 +128,7 @@
   import { ref, computed, onMounted } from 'vue'
   import Tag from 'primevue/tag'
   import TypeViewer from './TypeViewer.vue'
+import ValueTreeViewer from './ValueTreeViewer.vue'
   import type { TypeDescription, TypeRegistry, TypedValue } from '@wa-os/ts-rpc'
   import { TypeKind } from '@wa-os/ts-rpc'
   import { Reader } from '@wa-os/ts-rpc'

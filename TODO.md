@@ -105,9 +105,10 @@ Mark items `[x]` only when the **done** criterion is met.
 ## 10. Legacy Interactive
 
 - [x] Spec marks Interactive as legacy / not the current product focus
-- [ ] Do **not** remove or rewrite Interactive UI unless a later task explicitly asks
+- [x] Interactive UI **hidden** from app shell (components kept; not mounted; e2e smoke skipped)
+- [ ] Do **not** remove Interactive source unless a later task explicitly asks
 
-**Done when:** Interactive still works for load-module + call method; no new Interactive features required for this track.
+**Done when:** Interactive code remains available for a possible future mount; Recording shell is the only product path.
 
 ---
 
@@ -117,10 +118,11 @@ Mark items `[x]` only when the **done** criterion is met.
 - [x] **P0** R01 shell + R10 open echo + R33 Run / expectMatches
 - [x] **P1** timeline R20–R23, scrubber R30–R35, decode R40–R42, DevTools R70–R72
 - [x] **P2** R44 all replayable manifest fixtures (serial Run)
-- [x] **P3** errors R11/R12/R60/R61 + `dbg_topology` + R50–R52
-- [x] **P4** directory picker R13/R14 + Interactive smoke I01/I02
+- [x] **P3** errors R11/R12/R60/R61 + `dbg_topology` + R50–R52 (Environment tab)
+- [x] **P4** directory picker R13/R14 + Interactive smoke skipped (UI hidden)
 - [x] README e2e section
 - [x] **Content fidelity** R80–R87: oracle from dump ↔ UI timeline/hex/exact expect-matches (+ echo golden payloads)
+- [x] App shell + Environment tab e2e (no mode-select; `tab-environment` / `environment-*`)
 
 **Done when:** `npm run test:e2e -w @wa-os/module-debugger` is green locally with generated `.waosrec` fixtures.
 
@@ -135,3 +137,32 @@ Mark items `[x]` only when the **done** criterion is met.
 - [x] Spec / README / TODO notes
 
 **Done when:** opening `dbg_echo` / `dbg_shop` shows IN/OUT messages with decode and jump to contributing events.
+
+---
+
+## 13. RPC enrich + ValueTree
+
+- [x] `rpcEnrich.ts` — decode trailing request/response/error payload; `request_id` map correlation
+- [x] `rpcEnrich.test.ts` — synthetic + unknown function_id
+- [x] `ValueTreeViewer.vue` — typed recursive expand/collapse value viewer
+- [x] `TypeViewer.vue` compact mode + `MethodSignatureView.vue`
+- [x] `MessageStream.vue` — req column, summary, color-coding pairs
+- [x] `MessageDetail.vue` — RPC panel (arguments/return/error) via ValueTree
+- [x] `DataView.vue` migration to ValueTree
+- [x] Playwright M03-M05 + docs
+
+**Done when:** Messages tab shows request_id colors and rich parameter trees instead of raw JSON.
+
+---
+
+## 14. App shell + Environment tab
+
+- [x] `App.vue` — `h-screen` flex shell; Interactive mode switch removed / not mounted
+- [x] `RecordingDebugger` — dump header bar; flex Tabs stretch; Events | Messages | API | Environment
+- [x] Timeline / MessageStream / Detail — `flex-1` scroll (no `max-h-80`)
+- [x] `RegistryTypeBrowser` shared by API + Environment
+- [x] `EnvironmentView` — expandable bindings + local/peer registries + unbound section
+- [x] Topology panel removed from layout; e2e R50–R52 / shell / Interactive skip updated
+- [x] Docs: RECORDING_DEBUGGER / README / TODO
+
+**Done when:** viewport fills; Environment shows expandable connections with registry browsers; shell e2e green.

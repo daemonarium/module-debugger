@@ -9,7 +9,7 @@ Related:
 - Debug-store layout: [`debug-store/README.md`](../debug-store/README.md)
 - Implementation checklist: [`TODO.md`](./TODO.md)
 
-Status: **§1–§9 implemented** — packer (`.waosrec`), headless `ReplayRuntime` under [`src/replay/`](./src/replay/), Recording UI (timeline / scrubber / hex+RPC decode / `globalThis.replay`). Interactive remains available behind a mode switch.
+Status: **§1–§9 implemented** — packer (`.waosrec`), headless `ReplayRuntime` under [`src/replay/`](./src/replay/), Recording UI (app shell: Events / Messages / API / Environment, timeline / scrubber / hex+RPC decode / `globalThis.replay`). Interactive UI remains in the repo but is **not mounted** in the app shell.
 
 ---
 
@@ -38,8 +38,8 @@ Primary workflow: open a dump → scrub timeline → assert OUT bytes → decode
 
 | Mode | Status | Role |
 |------|--------|------|
-| **Recording** | Default UI | Open `.waosrec` / session folder; timeline, scrubber, hex + registry decode; `globalThis.replay` |
-| **Interactive** | Legacy | Load a WASM module, inspect registry, call methods via local RPC host — no kernel, no dump. Remains in the codebase for ad-hoc module poking; future “Interactive + Kernel” is out of scope for now |
+| **Recording** | Only UI path | Full-height app shell; open `.waosrec` / session folder; dump header + scrubber; tabs Events / Messages / API / Environment; `globalThis.replay` |
+| **Interactive** | Hidden (code kept) | Load a WASM module, inspect registry, call methods via local RPC host — no kernel, no dump. Components remain in the codebase but are not mounted; future “Interactive + Kernel” is out of scope for now |
 
 Default product focus is **Recording**.
 
@@ -308,22 +308,26 @@ Implemented under [`src/components/`](./src/components/):
 
 | Piece | Path |
 |-------|------|
-| Mode switch + shell | [`App.vue`](./src/App.vue) (Recording default) |
+| App shell (`h-screen`, Recording only) | [`App.vue`](./src/App.vue) |
 | Open dump | [`RecordingSource.vue`](./src/components/RecordingSource.vue) — `.waosrec` upload + session directory picker |
-| Workspace | [`RecordingDebugger.vue`](./src/components/RecordingDebugger.vue) |
-| Timeline / scrubber / detail / topology | [`components/recording/`](./src/components/recording/) |
+| Workspace | [`RecordingDebugger.vue`](./src/components/RecordingDebugger.vue) — dump header, scrubber, flex tabs |
+| Timeline / messages / API / Environment | [`components/recording/`](./src/components/recording/) |
 | Browser-safe replay API | [`src/replay/browser.ts`](./src/replay/browser.ts) |
 
 Behaviour:
 
 - Open `.waosrec` or a session folder (`buildDumpFromSessionFiles`).
+- Full-viewport app shell: Events/Messages scroll **inside** their panels (not the whole page).
+- Dump header: name + mono meta (pid, status, snap, mana, sizes) + expect matches + Close.
 - **Events** tab (low-level): timeline of monitor frames (stimulus / expect / topology); filter by socket; FrameDetail hex + per-Copy RPC decode.
-- **Messages** tab: reassembled length-prefixed RPC messages from Copy IN/OUT payloads (`buildMessageStream` in [`messageStream.ts`](./src/replay/messageStream.ts)). Each row is one wire message with socket + direction; spans map back to event indices for **Jump / Show in Events**.
-- Scrubber + step; seek restores snapshot + prefix replay (`ReplayRuntime.seek`) — shared above both tabs.
+- **Messages** tab: reassembled length-prefixed RPC messages from Copy IN/OUT payloads (`buildMessageStream`). Each row is one wire message with socket, direction, `request_id`, method signature summary, and return type. Correlated requests and responses are linked via color-coding on `request_id`. Select a message to view the fully typed `ValueTreeViewer` for parameters/return values alongside the hex dump and wire header. Spans map back to event indices for **Jump / Show in Events**.
+- **API** tab: browse all captured type registries (dropdown when multiple), object types and method signatures (read-only; no call) via shared `RegistryTypeBrowser`.
+- **Environment** tab: expandable socket bindings (`local ↔ peer`, direction labels); expanded row shows Local/Peer registries with the same browser; unbound keys under “Other registries”.
+- Scrubber + step; seek restores snapshot + prefix replay (`ReplayRuntime.seek`) — shared above tabs.
 - Surface replay failures (OUT mismatch) inline.
 - DevTools: `globalThis.replay` via `installReplayDevtools`.
 
-Interactive method-call UI stays available but is not the roadmap for this track.
+Interactive method-call UI is kept in the repo but not mounted in this shell.
 
 ---
 

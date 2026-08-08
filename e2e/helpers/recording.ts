@@ -6,7 +6,7 @@ export async function waitForDebugger(page: Page) {
 
 export async function readScrubberIndex(page: Page): Promise<{ index: number; total: number }> {
   const text = (await page.getByTestId('scrubber-index').innerText()).trim()
-  const m = /^(\d+)\s*\/\s*(\d+)$/.exec(text)
+  const m = /^(\d+)\s*\/\s*(\d+)/.exec(text)
   if (!m) throw new Error(`unexpected scrubber text: ${text}`)
   return { index: Number(m[1]), total: Number(m[2]) }
 }
@@ -65,6 +65,7 @@ export async function closeDump(page: Page) {
   await page.getByTestId('recording-source').waitFor({ state: 'visible' })
 }
 
-export async function switchMode(page: Page, label: 'Recording' | 'Interactive') {
-  await page.getByTestId('mode-select').getByRole('button', { name: label }).click()
+/** No-op: Interactive mode switch was removed from the app shell. */
+export async function switchMode(_page: Page, _label: 'Recording' | 'Interactive') {
+  // Interactive UI is hidden; Recording is the only path.
 }

@@ -5,8 +5,8 @@ import {
   ensureRpcCodecs,
   ensureRpcTypesInRegistry,
   registerDynamicCodecs,
+  registerMessageCodecs
 } from '@wa-os/ts-rpc'
-import { registerMessageCodecs } from '@wa-os/ts-rpc/src/valueSerialization.js'
 import type {
   BindingsSnapshotView,
   DecodedFrame,
@@ -171,9 +171,52 @@ function mergeAdjacentSpans(spans: MessageByteSpan[]): MessageByteSpan[] {
   return out
 }
 
-function uniqueSortedFrameIndices(spans: MessageByteSpan[]): number[] {
+export function uniqueSortedFrameIndices(spans: MessageByteSpan[]): number[] {
   return [...new Set(spans.map((s) => s.frameIndex))].sort((a, b) => a - b)
 }
+
+/** Messages used for scrubbing (exclude incomplete tails). */
+export function steppableMessages(messages: StreamMessage[]): StreamMessage[] {
+  return messages.filter((m) => !m.incomplete)
+}
+
+/**
+ * Message associated with a monitor-frame cursor index:
+ * 1) covers the event, else 2) last fully before it, else 3) first starting at/after it.
+ */
+export function messageAtEventIndex(
+  messages: StreamMessage[],
+  eventIndex: number
+): StreamMessage | null {
+  const list = steppableMessages(messages)
+  if (list.length === 0) return null
+
+  const covering = list.filter((m) => m.frameIndices.includes(eventIndex))
+  if (covering.length > 0) return covering[covering.length - 1]!
+
+  const before = list.filter((m) => {
+    const max = Math.max(...m.frameIndices)
+    return max < eventIndex
+  })
+  if (before.length > 0) return before[before.length - 1]!
+
+  return (
+    list.find((m) => Math.min(...m.frameIndices) >= eventIndex) ?? list[0]!
+  )
+}
+
+export function nextMessage(
+  messages: StreamMessage[],
+  currentId: number | null
+): StreamMessage | null {
+  const list = steppableMessages(messages)
+  if (list.length === 0) return null
+  if (currentId === null) return list[0]!
+  const idx = list.findIndex((m) => m.id === currentId)
+  if (idx < 0) return list[0]!
+  return list[idx + 1] ?? null
+}
+
 
 function decodeOneFramedMessage(
   framed: Uint8Array,

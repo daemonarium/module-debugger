@@ -1,69 +1,39 @@
 <template>
-  <div>
-    <div class="flex items-center gap-3 p-3 border-b border-gray-200 bg-gray-50">
-      <span class="font-semibold text-sm">module-debugger</span>
-      <div data-testid="mode-select">
-        <SelectButton
-          v-model="mode"
-          :options="modeOptions"
-          option-label="label"
-          option-value="value"
-          :allow-empty="false"
-        />
-      </div>
-    </div>
-
-    <template v-if="mode === 'recording'">
-      <RecordingSource v-if="!replayRuntime" @loaded="onDumpLoaded" />
-      <RecordingDebugger
-        v-else
-        :runtime="replayRuntime"
-        @close="closeRecording"
-      />
-      <Message
-        v-if="recordingError"
-        data-testid="recording-load-error"
-        severity="error"
-        class="m-4"
-        :closable="true"
-        @close="recordingError = null"
-      >
-        {{ recordingError }}
-      </Message>
-    </template>
-
-    <template v-else>
-      <ModuleSource v-if="!wasmModule" v-model="wasmModule" />
-      <ModuleDebugger v-if="module" :module="module" data-testid="module-debugger" />
-      <Message
-        v-if="interactiveError"
-        data-testid="interactive-error"
-        severity="error"
-        class="m-4"
-        :closable="true"
-        @close="interactiveError = null"
-      >
-        {{ interactiveError }}
-      </Message>
-    </template>
-
+  <div class="h-screen flex flex-col overflow-hidden" data-testid="app-shell">
+    <RecordingSource
+      v-if="!replayRuntime"
+      class="flex-1 min-h-0 overflow-auto"
+      @loaded="onDumpLoaded"
+    />
+    <RecordingDebugger
+      v-else
+      class="flex-1 min-h-0"
+      :runtime="replayRuntime"
+      @close="closeRecording"
+    />
+    <Message
+      v-if="recordingError"
+      data-testid="recording-load-error"
+      severity="error"
+      class="m-4 shrink-0"
+      :closable="true"
+      @close="recordingError = null"
+    >
+      {{ recordingError }}
+    </Message>
     <Toast />
   </div>
 </template>
 
 <script setup lang="ts">
   // Product focus: recording dump debugger — see ../RECORDING_DEBUGGER.md and ../TODO.md
-  // Interactive ModuleDebugger remains available behind the mode switch (§10).
-  import ModuleSource from './components/ModuleSource.vue'
-  import ModuleDebugger from './components/ModuleDebugger.vue'
+  // Interactive ModuleDebugger remains in the codebase but is not mounted in this shell.
   import RecordingSource from './components/RecordingSource.vue'
   import RecordingDebugger from './components/RecordingDebugger.vue'
   import Toast from 'primevue/toast'
-  import SelectButton from 'primevue/selectbutton'
   import Message from 'primevue/message'
 
-  import { shallowRef, ref, watch } from 'vue'
-  import { Module } from './module'
+  import { shallowRef, ref } from 'vue'
   import { defaultHighlightStyle } from '@codemirror/language'
   import { StyleModule } from 'style-mod'
   import {
@@ -74,12 +44,6 @@
   if (typeof window !== 'undefined') {
     StyleModule.mount(window.document, defaultHighlightStyle.module)
   }
-
-  const mode = ref<'recording' | 'interactive'>('recording')
-  const modeOptions = [
-    { label: 'Recording', value: 'recording' },
-    { label: 'Interactive', value: 'interactive' },
-  ]
 
   const replayRuntime = shallowRef<ReplayRuntime | null>(null)
   const recordingError = ref<string | null>(null)
@@ -98,31 +62,6 @@
     replayRuntime.value = null
     recordingError.value = null
   }
-
-  const wasmModule = shallowRef<WebAssembly.Module | null>(null)
-  const module = shallowRef<Module | null>(null)
-  const interactiveError = ref<string | null>(null)
-
-  watch(wasmModule, async (newWasmModule) => {
-    if (!newWasmModule) {
-      module.value = null
-      return
-    }
-    interactiveError.value = null
-    try {
-      const m = new Module(newWasmModule)
-      await m.instantiate()
-      //@ts-ignore
-      globalThis.module = m
-      //@ts-ignore
-      globalThis.rpcDescription = m.rpcDescription
-      module.value = m
-    } catch (e) {
-      interactiveError.value = e instanceof Error ? e.message : String(e)
-      wasmModule.value = null
-      module.value = null
-    }
-  })
 </script>
 
 <style scoped></style>
@@ -137,11 +76,14 @@
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
     font-family: var(--font-sans)
   }
-  html,body
-  {
-    min-height: 100%;
+  html, body {
+    height: 100%;
+    margin: 0;
     font-family: var(--font-sans);
     font-weight: 400;
+  }
+  #app {
+    height: 100%;
   }
 
   @layer base {

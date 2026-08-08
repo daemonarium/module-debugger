@@ -5,13 +5,13 @@ import {
   TypeKind,
   type TypeRegistry,
 } from '@wa-os/ts-rpc'
-import { CodecRegistry } from '@wa-os/ts-rpc/src/codec.js'
+import { CodecRegistry } from '@wa-os/ts-rpc'
 import {
   registerDynamicCodecs,
   serializeValueByType,
   deserializeValueByType,
   type JsonValue,
-} from '@wa-os/ts-rpc/src/valueSerialization.js'
+} from '@wa-os/ts-rpc'
 import { createGeneratedTypeRegistry } from '@wa-os/ts-kernel/src/kernelApi.js'
 import {
   type DecodedFrame,

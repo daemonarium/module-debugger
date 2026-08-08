@@ -1,5 +1,5 @@
 <template>
-  <div data-testid="frame-detail" class="frame-detail flex flex-col gap-3">
+  <div data-testid="frame-detail" class="frame-detail flex flex-col gap-3 h-full min-h-0 overflow-auto">
     <div v-if="!frame" class="text-sm text-gray-500">Select a frame in the timeline.</div>
     <template v-else>
       <div class="flex flex-wrap items-center gap-2">
