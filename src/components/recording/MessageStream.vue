@@ -27,7 +27,7 @@
             <th class="p-1">summary</th>
             <th class="p-1 w-14">bytes</th>
             <th class="p-1 w-20">events</th>
-            <th class="p-1 w-16"></th>
+            <th class="p-1 w-20"></th>
           </tr>
         </thead>
         <tbody>
@@ -58,10 +58,17 @@
                 class="text-[10px]"
               />
             </td>
-            <td class="p-1 text-surface-500">{{ msg.socket }}</td>
             <td class="p-1">
-              <span 
-                v-if="msg.rpc?.requestId" 
+              <button
+                type="button"
+                data-testid="message-socket-link"
+                class="text-primary-600 dark:text-primary-400 hover:underline"
+                @click.stop="$emit('navigate-socket', msg.socket)"
+              >{{ msg.socket }}</button>
+            </td>
+            <td class="p-1">
+              <span
+                v-if="msg.rpc?.requestId"
                 class="inline-block px-1 rounded text-[10px] border"
                 :class="getReqIdStyle(msg)"
               >
@@ -69,14 +76,32 @@
               </span>
             </td>
             <td class="p-1 truncate max-w-[20rem]" :title="summaryTitle(msg)">
-              <template v-if="msg.rpc?.kind === 'request' || msg.rpc?.kind === 'response'">
+              <template v-if="msg.rpc?.kind === 'request'">
                 <MethodSignatureView
-                  :mode="msg.rpc.kind"
+                  mode="request"
                   :method-name="msg.rpc.methodName"
                   :owner-type-name="msg.rpc.ownerTypeName"
                   :param-types="msg.rpc.paramTypes"
                   :return-type="msg.rpc.returnType"
                   :return-type-name="msg.rpc.returnTypeName"
+                  :show-types="showTypes"
+                  :show-param-values="showParamValues"
+                  :args="msg.rpc.args"
+                  :show-result="showResults && !showResponses"
+                  :result-value="pairedResult(msg)"
+                  clickable-method
+                  @click-method="onMethodClick(msg)"
+                />
+              </template>
+              <template v-else-if="msg.rpc?.kind === 'response'">
+                <MethodSignatureView
+                  mode="response"
+                  :method-name="msg.rpc.methodName"
+                  :return-type="msg.rpc.returnType"
+                  :return-type-name="msg.rpc.returnTypeName"
+                  :show-types="showTypes"
+                  :show-result="showResults"
+                  :result-value="msg.rpc.returnValue"
                 />
               </template>
               <template v-else-if="msg.rpc?.kind === 'error'">
@@ -90,28 +115,69 @@
             <td class="p-1 text-surface-500">{{ msg.bytes.length }}</td>
             <td class="p-1 text-surface-500">{{ eventsLabel(msg) }}</td>
             <td class="p-1">
-              <Button
-                data-testid="message-jump"
-                label="Jump"
-                size="small"
-                text
-                class="!p-0 !text-xs"
-                @click.stop="$emit('jump', msg.frameIndices[0] ?? 0)"
-              />
+              <div class="flex items-center gap-0.5">
+                <Button
+                  data-testid="message-jump"
+                  icon="pi pi-history"
+                  size="small"
+                  text
+                  rounded
+                  v-tooltip.top="'Show in Events'"
+                  class="!w-7 !h-7"
+                  :disabled="!msg.frameIndices.length"
+                  @click.stop="$emit('jump', msg.frameIndices[0] ?? 0)"
+                />
+                <Button
+                  data-testid="message-debug"
+                  icon="pi pi-wrench"
+                  size="small"
+                  text
+                  rounded
+                  severity="warn"
+                  v-tooltip.top="'Debug in browser (seek + debugger before waos_socket_data)'"
+                  class="!w-7 !h-7"
+                  :disabled="!canDebug(msg)"
+                  @click.stop="$emit('debug', msg.id)"
+                />
+              </div>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <div
+      data-testid="message-display-toggles"
+      class="shrink-0 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-surface-600 dark:text-surface-400 border-t border-surface-200 dark:border-surface-700 pt-2"
+    >
+      <label class="inline-flex items-center gap-2 cursor-pointer" data-testid="toggle-param-values">
+        <ToggleSwitch v-model="showParamValues" />
+        <span>Show parameter values</span>
+      </label>
+      <label class="inline-flex items-center gap-2 cursor-pointer" data-testid="toggle-results">
+        <ToggleSwitch v-model="showResults" />
+        <span>Show results</span>
+      </label>
+      <label class="inline-flex items-center gap-2 cursor-pointer" data-testid="toggle-types">
+        <ToggleSwitch v-model="showTypes" />
+        <span>Show types</span>
+      </label>
+      <label class="inline-flex items-center gap-2 cursor-pointer" data-testid="toggle-responses">
+        <ToggleSwitch v-model="showResponses" />
+        <span>Show responses</span>
+      </label>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { computed, ref } from 'vue'
+  import { computed, ref, watch } from 'vue'
   import Tag from 'primevue/tag'
   import Select from 'primevue/select'
   import Button from 'primevue/button'
+  import ToggleSwitch from 'primevue/toggleswitch'
   import type { EnrichedStreamMessage } from '../../replay/browser'
+  import { findPairedMessage } from '../../replay/browser'
   import MethodSignatureView from './MethodSignatureView.vue'
   import { colorForRequestId } from './requestIdColor.js'
   import { shouldShowOwnerChip } from './ownerChip.js'
@@ -119,16 +185,23 @@
   const props = defineProps<{
     messages: EnrichedStreamMessage[]
     selectedId: number | null
-    /** Message tied to current scrubber/event cursor (ring highlight). */
     currentId?: number | null
   }>()
 
-  defineEmits<{
+  const emit = defineEmits<{
     select: [id: number]
     jump: [frameIndex: number]
+    debug: [id: number]
+    'navigate-socket': [socket: number]
+    'navigate-method': [payload: { socket: number; ownerTypeName?: string; methodName: string }]
+    'update:displayMessages': [messages: EnrichedStreamMessage[]]
   }>()
 
   const socketFilter = ref<number | 'all'>('all')
+  const showParamValues = ref(true)
+  const showResults = ref(true)
+  const showTypes = ref(true)
+  const showResponses = ref(true)
 
   const socketOptions = computed(() => {
     const set = new Set<number>()
@@ -140,9 +213,23 @@
   })
 
   const filtered = computed(() => {
-    if (socketFilter.value === 'all') return props.messages
-    return props.messages.filter((m) => m.socket === socketFilter.value)
+    let list = props.messages
+    if (!showResponses.value) {
+      list = list.filter((m) => m.rpc?.kind !== 'response')
+    }
+    if (socketFilter.value !== 'all') {
+      list = list.filter((m) => m.socket === socketFilter.value)
+    }
+    return list
   })
+
+  watch(
+    filtered,
+    (list) => {
+      emit('update:displayMessages', list)
+    },
+    { immediate: true }
+  )
 
   function typeLabel(msg: EnrichedStreamMessage): string {
     if (msg.incomplete) return '(incomplete)'
@@ -161,9 +248,6 @@
   function getRowColorClass(msg: EnrichedStreamMessage) {
     const color = colorForRequestId(msg.rpc?.requestId)
     if (!color) return ''
-    // apply background subtly
-    // e.g., using opacity or a lighter version
-    // Actually the palette uses Tailwind classes directly
     return `border-l-4 border-l-transparent hover:border-l-current ${color.bg.replace('100', '50').replace('900/30', '900/10')}`
   }
 
@@ -171,6 +255,28 @@
     const color = colorForRequestId(msg.rpc?.requestId)
     if (!color) return ''
     return `${color.bg} ${color.border} ${color.text}`
+  }
+
+  function pairedResult(msg: EnrichedStreamMessage): unknown {
+    const paired = findPairedMessage(props.messages, msg)
+    if (!paired?.rpc) return undefined
+    if (paired.rpc.kind === 'response') return paired.rpc.returnValue
+    if (paired.rpc.kind === 'error') return paired.rpc.exception?.value
+    return undefined
+  }
+
+  function canDebug(msg: EnrichedStreamMessage): boolean {
+    return msg.direction === 'in' && msg.frameIndices.length > 0 && !msg.incomplete
+  }
+
+  function onMethodClick(msg: EnrichedStreamMessage) {
+    const name = msg.rpc?.methodName
+    if (!name) return
+    emit('navigate-method', {
+      socket: msg.socket,
+      ownerTypeName: msg.rpc?.ownerTypeName,
+      methodName: name,
+    })
   }
 
   function summaryTitle(msg: EnrichedStreamMessage): string {
@@ -189,4 +295,3 @@
     return typeLabel(msg)
   }
 </script>
-

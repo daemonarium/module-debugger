@@ -1,5 +1,9 @@
 <template>
-  <div data-testid="environment-view" class="environment-view flex flex-col gap-3 h-full min-h-0 pt-2 overflow-auto">
+  <div
+    ref="rootEl"
+    data-testid="environment-view"
+    class="environment-view flex flex-col gap-3 h-full min-h-0 pt-2 overflow-auto"
+  >
     <div v-if="bindings.length === 0" data-testid="environment-empty" class="text-sm text-surface-500">
       No bindings
     </div>
@@ -10,7 +14,11 @@
         :key="row.socket"
         data-testid="environment-binding"
         :data-local-socket="row.socket"
+        :data-expanded="expandedBindings.has(row.socket) ? '1' : undefined"
         class="border border-surface-200 dark:border-surface-700 rounded overflow-hidden"
+        :class="{
+          'ring-2 ring-primary-400': focusSocket === row.socket && highlightSocket,
+        }"
       >
         <button
           type="button"
@@ -40,6 +48,8 @@
             <RegistryTypeBrowser
               :registry-key="localKey(row)"
               :registry-bytes="registries.get(localKey(row)) ?? null"
+              :focus-method="focusSocket === row.socket ? focusMethod : null"
+              :focus-nonce="focusNonce"
             />
           </div>
           <div data-testid="environment-registry" :data-registry-role="'peer'">
@@ -49,6 +59,8 @@
             <RegistryTypeBrowser
               :registry-key="peerKey(row)"
               :registry-bytes="registries.get(peerKey(row)) ?? null"
+              :focus-method="focusSocket === row.socket ? focusMethod : null"
+              :focus-nonce="focusNonce"
             />
           </div>
         </div>
@@ -62,6 +74,8 @@
           v-for="key in unboundKeys"
           :key="key"
           data-testid="environment-unbound-registry"
+          :data-registry-key="key"
+          :data-expanded="expandedUnbound.has(key) ? '1' : undefined"
           class="border border-surface-200 dark:border-surface-700 rounded overflow-hidden"
         >
           <button
@@ -87,6 +101,8 @@
             <RegistryTypeBrowser
               :registry-key="key"
               :registry-bytes="registries.get(key) ?? null"
+              :focus-method="focusUnboundMethod(key)"
+              :focus-nonce="focusNonce"
             />
           </div>
         </div>
@@ -96,10 +112,15 @@
 </template>
 
 <script setup lang="ts">
-  import { computed, reactive } from 'vue'
+  import { computed, nextTick, reactive, ref, watch } from 'vue'
   import type { TopologyBinding } from '../../replay/browser'
   import { registryKey } from '../../replay/browser'
   import RegistryTypeBrowser from './RegistryTypeBrowser.vue'
+
+  export type FocusMethod = {
+    ownerTypeName?: string
+    methodName: string
+  }
 
   const DIR_LABELS: Record<number, string> = {
     0: 'NONE',
@@ -108,14 +129,26 @@
     3: 'BOTH',
   }
 
-  const props = defineProps<{
-    processId: number
-    topology: Map<number, TopologyBinding>
-    registries: Map<string, Uint8Array>
-  }>()
+  const props = withDefaults(
+    defineProps<{
+      processId: number
+      topology: Map<number, TopologyBinding>
+      registries: Map<string, Uint8Array>
+      focusSocket?: number | null
+      focusMethod?: FocusMethod | null
+      focusNonce?: number
+    }>(),
+    {
+      focusSocket: null,
+      focusMethod: null,
+      focusNonce: 0,
+    }
+  )
 
+  const rootEl = ref<HTMLElement | null>(null)
   const expandedBindings = reactive(new Set<number>())
   const expandedUnbound = reactive(new Set<string>())
+  const highlightSocket = ref(false)
 
   const bindings = computed(() =>
     [...props.topology.entries()]
@@ -159,4 +192,41 @@
     if (expandedUnbound.has(key)) expandedUnbound.delete(key)
     else expandedUnbound.add(key)
   }
+
+  function focusUnboundMethod(key: string) {
+    if (props.focusSocket === null || props.focusSocket === undefined) return null
+    if (key !== registryKey(props.processId, props.focusSocket)) return null
+    return props.focusMethod
+  }
+
+  watch(
+    () => [props.focusSocket, props.focusNonce] as const,
+    async ([socket]) => {
+      if (socket === null || socket === undefined) return
+      const hasBinding = bindings.value.some((b) => b.socket === socket)
+      if (hasBinding) {
+        expandedBindings.add(socket)
+      } else {
+        const key = registryKey(props.processId, socket)
+        if (props.registries.has(key)) {
+          expandedUnbound.add(key)
+        }
+      }
+      highlightSocket.value = true
+      await nextTick()
+      let target: Element | null | undefined =
+        rootEl.value?.querySelector(`[data-local-socket="${socket}"]`)
+      if (!hasBinding) {
+        const key = registryKey(props.processId, socket)
+        target = rootEl.value?.querySelector(
+          `[data-testid="environment-unbound-registry"][data-registry-key="${key}"]`
+        )
+      }
+      target?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+      window.setTimeout(() => {
+        highlightSocket.value = false
+      }, 1600)
+    },
+    { immediate: true }
+  )
 </script>

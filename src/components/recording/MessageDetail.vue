@@ -8,7 +8,12 @@
           :value="message.direction.toUpperCase()"
           :severity="message.direction === 'in' ? 'info' : 'success'"
         />
-        <span class="font-mono text-sm text-surface-600 dark:text-surface-400">sock={{ message.socket }}</span>
+        <button
+          type="button"
+          data-testid="message-detail-socket-link"
+          class="font-mono text-sm text-primary-600 dark:text-primary-400 hover:underline"
+          @click="$emit('navigate-socket', message.socket)"
+        >sock={{ message.socket }}</button>
 
         <span
           v-if="message.rpc?.requestId"
@@ -22,9 +27,12 @@
           {{ message.typeName || (message.incomplete ? '(incomplete)' : '(undecoded)') }}
         </span>
 
-        <span
+        <button
           v-if="message.rpc?.methodName"
-          class="font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 inline-flex items-center gap-1"
+          type="button"
+          data-testid="message-detail-method-link"
+          class="font-mono text-sm font-semibold text-primary-600 dark:text-primary-400 inline-flex items-center gap-1 hover:underline"
+          @click="onMethodClick"
         >
           <span
             v-if="showOwnerChip"
@@ -32,18 +40,30 @@
             data-testid="owner-type-chip"
           >{{ message.rpc.ownerTypeName }}</span>
           {{ message.rpc.methodName }}
-        </span>
+        </button>
 
-        <Button
-          data-testid="message-show-events"
-          label="Jump to Events"
-          icon="pi pi-arrow-right"
-          size="small"
-          severity="secondary"
-          :disabled="!message.frameIndices.length"
-          @click="$emit('jump', message.frameIndices[0]!)"
-          class="ml-auto"
-        />
+        <div class="ml-auto flex items-center gap-1">
+          <Button
+            data-testid="message-show-events"
+            icon="pi pi-history"
+            size="small"
+            severity="secondary"
+            rounded
+            v-tooltip.top="'Show in Events'"
+            :disabled="!message.frameIndices.length"
+            @click="$emit('jump', message.frameIndices[0]!)"
+          />
+          <Button
+            data-testid="message-detail-debug"
+            icon="pi pi-wrench"
+            size="small"
+            severity="warn"
+            rounded
+            v-tooltip.top="'Debug in browser'"
+            :disabled="!(message.direction === 'in' && message.frameIndices.length)"
+            @click="$emit('debug', message.id)"
+          />
+        </div>
       </div>
 
       <div class="text-xs text-surface-500">
@@ -56,46 +76,76 @@
       <!-- RPC Panel -->
       <div
         v-if="message.rpc && message.rpc.kind !== 'other'"
-        class="flex-1 overflow-auto min-h-[10rem] border border-surface-200 dark:border-surface-700 rounded bg-surface-50 dark:bg-surface-900 p-3 shadow-sm"
+        class="flex-1 overflow-auto min-h-[10rem] border border-surface-200 dark:border-surface-700 rounded bg-surface-50 dark:bg-surface-900 p-3 shadow-sm space-y-4"
       >
         <template v-if="message.rpc.kind === 'request'">
-          <div class="text-xs font-semibold text-surface-500 uppercase tracking-wider mb-2">Request Arguments</div>
-          <div v-if="!message.rpc.args || message.rpc.args.length === 0" class="text-sm text-surface-500 italic">
-            No arguments
+          <div>
+            <div class="text-xs font-semibold text-surface-500 uppercase tracking-wider mb-2">Request Arguments</div>
+            <RpcArgsView :rpc="message.rpc" :registry="typeRegistry" />
           </div>
-          <div v-else class="space-y-1">
-            <ValueTreeViewer
-              v-for="(arg, idx) in message.rpc.args"
-              :key="idx"
-              :name="arg.name"
-              :value="arg.value"
-              :type="arg.type"
-              :registry="typeRegistry"
+
+          <div data-testid="paired-response-section" class="pt-3 border-t border-surface-200 dark:border-surface-700">
+            <div class="flex flex-wrap items-center gap-2 mb-2">
+              <div class="text-xs font-semibold text-surface-500 uppercase tracking-wider">
+                Response to this request
+              </div>
+              <Button
+                v-if="pairedMessage"
+                data-testid="jump-to-response"
+                label="Jump to response"
+                icon="pi pi-arrow-down"
+                size="small"
+                text
+                class="!p-0 !text-xs ml-auto"
+                @click="$emit('select', pairedMessage.id)"
+              />
+            </div>
+            <div v-if="!pairedMessage" class="text-sm text-surface-500 italic">
+              No matching response
+            </div>
+            <RpcResultView
+              v-else
+              :rpc="pairedMessage.rpc!"
+              :payload-size="pairedMessage.payloadSize"
+              :registry="pairedTypeRegistry"
             />
           </div>
         </template>
 
-        <template v-else-if="message.rpc.kind === 'response'">
-          <div class="text-xs font-semibold text-surface-500 uppercase tracking-wider mb-2">Return Value</div>
-          <div v-if="!message.payloadSize || message.payloadSize === 0" class="text-sm text-surface-500 italic">
-            Void / Empty return
+        <template v-else-if="message.rpc.kind === 'response' || message.rpc.kind === 'error'">
+          <div data-testid="paired-request-section">
+            <div class="flex flex-wrap items-center gap-2 mb-2">
+              <div class="text-xs font-semibold text-surface-500 uppercase tracking-wider">
+                Request for this response
+              </div>
+              <Button
+                v-if="pairedMessage"
+                data-testid="jump-to-request"
+                label="Jump to request"
+                icon="pi pi-arrow-up"
+                size="small"
+                text
+                class="!p-0 !text-xs ml-auto"
+                @click="$emit('select', pairedMessage.id)"
+              />
+            </div>
+            <div v-if="!pairedMessage" class="text-sm text-surface-500 italic">
+              No matching request
+            </div>
+            <RpcArgsView
+              v-else
+              :rpc="pairedMessage.rpc!"
+              :registry="pairedTypeRegistry"
+            />
           </div>
-          <ValueTreeViewer
-            v-else
-            name="return"
-            :value="message.rpc.returnValue"
-            :type="message.rpc.returnType"
-            :registry="typeRegistry"
-          />
-        </template>
 
-        <template v-else-if="message.rpc.kind === 'error'">
-          <div class="text-xs font-semibold text-red-500 uppercase tracking-wider mb-2">Exception</div>
-          <ValueTreeViewer
-            :name="message.rpc.exception?.typeName || 'exception'"
-            :value="message.rpc.exception?.value"
-            :registry="typeRegistry"
-          />
+          <div class="pt-3 border-t border-surface-200 dark:border-surface-700">
+            <RpcResultView
+              :rpc="message.rpc"
+              :payload-size="message.payloadSize"
+              :registry="typeRegistry"
+            />
+          </div>
         </template>
       </div>
 
@@ -149,6 +199,8 @@
   import Message from 'primevue/message'
   import HexPane from './HexPane.vue'
   import ValueTreeViewer from '../ValueTreeViewer.vue'
+  import RpcArgsView from './RpcArgsView.vue'
+  import RpcResultView from './RpcResultView.vue'
   import type { EnrichedStreamMessage } from '../../replay/browser'
   import { colorForRequestId } from './requestIdColor.js'
   import { shouldShowOwnerChip } from './ownerChip.js'
@@ -157,11 +209,16 @@
 
   const props = defineProps<{
     message: EnrichedStreamMessage | null
+    pairedMessage?: EnrichedStreamMessage | null
     registries: Map<string, Uint8Array>
   }>()
 
-  defineEmits<{
+  const emit = defineEmits<{
     jump: [frameIndex: number]
+    select: [messageId: number]
+    debug: [messageId: number]
+    'navigate-socket': [socket: number]
+    'navigate-method': [payload: { socket: number; ownerTypeName?: string; methodName: string }]
   }>()
 
   const showWireHeader = ref(false)
@@ -180,9 +237,20 @@
     return `${color.bg} ${color.border} ${color.text}`
   }
 
-  const typeRegistry = computed<TypeRegistry | null>(() => {
-    if (!props.message?.registryKey) return null
-    const bytes = props.registries.get(props.message.registryKey)
+  function onMethodClick() {
+    const msg = props.message
+    const name = msg?.rpc?.methodName
+    if (!msg || !name) return
+    emit('navigate-method', {
+      socket: msg.socket,
+      ownerTypeName: msg.rpc?.ownerTypeName,
+      methodName: name,
+    })
+  }
+
+  function loadRegistry(key: string | undefined): TypeRegistry | null {
+    if (!key) return null
+    const bytes = props.registries.get(key)
     if (!bytes) return null
     try {
       const reg = loadTypeRegistryFromBytes(bytes)
@@ -191,5 +259,8 @@
     } catch {
       return null
     }
-  })
+  }
+
+  const typeRegistry = computed(() => loadRegistry(props.message?.registryKey))
+  const pairedTypeRegistry = computed(() => loadRegistry(props.pairedMessage?.registryKey))
 </script>

@@ -27,6 +27,10 @@ export {
 export { loadWaosrecTypeRegistry } from './fixtures.js'
 export { ReplayHost } from './host.js'
 export { ReplayRuntime, type ReplayState } from './runtime.js'
+export {
+  resolveDataFrameIndex,
+  formatPreviewValue,
+} from './debugReplay.js'
 export { installReplayDevtools, type ReplayDevtools } from './devtools.js'
 export {
   decodeSocketPayload,
@@ -47,6 +51,7 @@ export {
 } from './messageStream.js'
 export {
   enrichRpcMessages,
+  findPairedMessage,
   type EnrichedStreamMessage,
   type RpcEnrichment,
   type RpcCallArg,

@@ -1,5 +1,6 @@
 import { parseMonitorFrames, createMonitorCodecs } from './frames.js'
 import { ReplayHost } from './host.js'
+import { resolveDataFrameIndex } from './debugReplay.js'
 import {
   type DecodedFrame,
   type RecordingDump,
@@ -149,6 +150,32 @@ export class ReplayRuntime {
     if (this.state.lastError) {
       throw this.state.lastError
     }
+  }
+
+  /**
+   * Seek so the next step applies process_data_event at dataFrameIndex,
+   * then step once with breakBeforeSocketData set (browser `debugger;`).
+   */
+  async debugToDataFrame(dataFrameIndex: number): Promise<void> {
+    const frame = this.frames[dataFrameIndex]
+    if (!frame || frame.typeName !== 'process_data_event') {
+      throw new ReplayError(`frame ${dataFrameIndex} is not process_data_event`)
+    }
+    await this.seek(dataFrameIndex)
+    this.host.breakBeforeSocketData = true
+    try {
+      this.step()
+    } catch (e) {
+      if (!(e instanceof ReplayError)) throw e
+    }
+  }
+
+  /** Resolve Data IN for a socket starting at fromIndex, then debugToDataFrame. */
+  async debugFromFrame(fromIndex: number, socket: number): Promise<number | null> {
+    const dataIndex = resolveDataFrameIndex(this.frames, fromIndex, socket)
+    if (dataIndex === null) return null
+    await this.debugToDataFrame(dataIndex)
+    return dataIndex
   }
 
   private applyFrame(frame: DecodedFrame): void {

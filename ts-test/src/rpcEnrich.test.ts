@@ -13,7 +13,7 @@ import {
   type RegisteredMethod,
 } from '@wa-os/ts-rpc'
 import { serializeTypeRegistry, serializeValueByType, registerMessageCodecs } from '@wa-os/ts-rpc'
-import { enrichRpcMessages } from '../../src/replay/rpcEnrich.js'
+import { enrichRpcMessages, findPairedMessage } from '../../src/replay/rpcEnrich.js'
 import { buildMessageStream } from '../../src/replay/messageStream.js'
 import type { StreamMessage, MessageByteSpan } from '../../src/replay/messageStream.js'
 import type { DecodedFrame } from '../../src/replay/types.js'
@@ -169,5 +169,47 @@ describe('enrichRpcMessages', () => {
 
     const enriched = enrichRpcMessages(messages, new Map([['reg1', registryBlob]]))
     expect(enriched[0]!.rpc!.enrichError).to.include('Unknown function_id 9999')
+  })
+
+  it('findPairedMessage links request and response on same socket + request_id', () => {
+    const messages = [
+      {
+        id: 1,
+        socket: 2,
+        direction: 'out' as const,
+        bytes: new Uint8Array(),
+        body: new Uint8Array(),
+        spans: [],
+        frameIndices: [1],
+        typeName: 'rpc_request',
+        rpc: { kind: 'request' as const, requestId: '7', args: [] },
+      },
+      {
+        id: 2,
+        socket: 2,
+        direction: 'in' as const,
+        bytes: new Uint8Array(),
+        body: new Uint8Array(),
+        spans: [],
+        frameIndices: [2],
+        typeName: 'rpc_response',
+        rpc: { kind: 'response' as const, requestId: '7', returnValue: 1 },
+      },
+      {
+        id: 3,
+        socket: 3,
+        direction: 'in' as const,
+        bytes: new Uint8Array(),
+        body: new Uint8Array(),
+        spans: [],
+        frameIndices: [3],
+        typeName: 'rpc_response',
+        rpc: { kind: 'response' as const, requestId: '7' },
+      },
+    ]
+
+    expect(findPairedMessage(messages, messages[0]!)?.id).to.equal(2)
+    expect(findPairedMessage(messages, messages[1]!)?.id).to.equal(1)
+    expect(findPairedMessage(messages, messages[2]!)).to.equal(null)
   })
 })

@@ -63,6 +63,8 @@ export class ReplayHost {
   moduleSockets?: ModuleSockets
   manaUsed = 0
   manaLimit = Number.MAX_SAFE_INTEGER
+  /** When true, next callSocketData hits `debugger;` then clears the flag. */
+  breakBeforeSocketData = false
   private onFlush: FlushHandler
 
   constructor(
@@ -160,6 +162,11 @@ export class ReplayHost {
     if (!this.instance) throw new ReplayError('host not instantiated')
     const fn = this.instance.exports.waos_socket_data as ((s: number) => void) | undefined
     if (!fn) throw new ReplayError('waos_socket_data not exported')
+    if (this.breakBeforeSocketData) {
+      this.breakBeforeSocketData = false
+      // eslint-disable-next-line no-debugger
+      debugger
+    }
     fn(socket)
   }
 

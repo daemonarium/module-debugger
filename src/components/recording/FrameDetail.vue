@@ -6,6 +6,17 @@
         <Tag data-testid="frame-class" :value="frame.class" />
         <span data-testid="frame-type-name" class="font-mono text-sm">{{ frame.typeName }}</span>
         <span class="text-xs text-gray-500">offset={{ frame.offset }}</span>
+        <Button
+          v-if="canDebug"
+          data-testid="frame-debug"
+          icon="pi pi-wrench"
+          label="Debug"
+          size="small"
+          severity="warn"
+          class="ml-auto"
+          v-tooltip.top="'Seek before Data IN and break in browser debugger'"
+          @click="$emit('debug')"
+        />
       </div>
       <pre data-testid="frame-header-json" class="text-xs bg-gray-50 p-2 rounded overflow-auto max-h-32">{{ headerJson }}</pre>
 
@@ -51,6 +62,7 @@
   import { computed } from 'vue'
   import Tag from 'primevue/tag'
   import Message from 'primevue/message'
+  import Button from 'primevue/button'
   import HexPane from './HexPane.vue'
   import type { DecodedFrame, TopologyBinding } from '../../replay/browser'
   import {
@@ -65,6 +77,10 @@
     topology: Map<number, TopologyBinding>
     registries: Map<string, Uint8Array>
     replayError?: string
+  }>()
+
+  defineEmits<{
+    debug: []
   }>()
 
   function formatJson(value: unknown): string {
@@ -84,6 +100,16 @@
   const socket = computed(() => {
     if (!props.frame || !('socket' in props.frame.header)) return 0
     return num(props.frame.header.socket)
+  })
+
+  const canDebug = computed(() => {
+    const f = props.frame
+    if (!f || f.class !== 'stimulus') return false
+    return (
+      f.typeName === 'process_copy_event' ||
+      f.typeName === 'process_data_event' ||
+      f.typeName === 'process_drain_event'
+    )
   })
 
   const resolved = computed(() =>

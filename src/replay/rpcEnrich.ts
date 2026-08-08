@@ -68,6 +68,44 @@ interface PendingRequest {
   returnTypeName: string
 }
 
+/**
+ * Find the request↔response/error pair for a message on the same socket + request_id.
+ */
+export function findPairedMessage(
+  messages: EnrichedStreamMessage[],
+  message: EnrichedStreamMessage | null | undefined
+): EnrichedStreamMessage | null {
+  if (!message?.rpc) return null
+  const { kind, requestId } = message.rpc
+  if (!requestId || kind === 'other') return null
+
+  if (kind === 'request') {
+    return (
+      messages.find(
+        (m) =>
+          m.id !== message.id &&
+          m.socket === message.socket &&
+          m.rpc?.requestId === requestId &&
+          (m.rpc.kind === 'response' || m.rpc.kind === 'error')
+      ) ?? null
+    )
+  }
+
+  if (kind === 'response' || kind === 'error') {
+    return (
+      messages.find(
+        (m) =>
+          m.id !== message.id &&
+          m.socket === message.socket &&
+          m.rpc?.requestId === requestId &&
+          m.rpc.kind === 'request'
+      ) ?? null
+    )
+  }
+
+  return null
+}
+
 export function enrichRpcMessages(
   messages: StreamMessage[],
   registriesInput: Map<string, Uint8Array>
