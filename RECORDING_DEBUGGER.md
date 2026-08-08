@@ -9,7 +9,7 @@ Related:
 - Debug-store layout: [`debug-store/README.md`](../debug-store/README.md)
 - Implementation checklist: [`TODO.md`](./TODO.md)
 
-Status: **§1–§8 implemented** — packer (`.waosrec`), headless `ReplayRuntime` under [`src/replay/`](./src/replay/), and e2e OUT asserts. UI timeline / scrubber is §9 (`TODO.md`).
+Status: **§1–§9 implemented** — packer (`.waosrec`), headless `ReplayRuntime` under [`src/replay/`](./src/replay/), Recording UI (timeline / scrubber / hex+RPC decode / `globalThis.replay`). Interactive remains available behind a mode switch.
 
 ---
 
@@ -38,7 +38,7 @@ Primary workflow: open a dump → scrub timeline → assert OUT bytes → decode
 
 | Mode | Status | Role |
 |------|--------|------|
-| **Recording** | Headless replay done; UI pending | Load session / `.waosrec` via [`src/replay/`](./src/replay/); UI timeline + decode is §9 |
+| **Recording** | Default UI | Open `.waosrec` / session folder; timeline, scrubber, hex + registry decode; `globalThis.replay` |
 | **Interactive** | Legacy | Load a WASM module, inspect registry, call methods via local RPC host — no kernel, no dump. Remains in the codebase for ad-hoc module poking; future “Interactive + Kernel” is out of scope for now |
 
 Default product focus is **Recording**.
@@ -166,7 +166,7 @@ No peer sockets: IN payloads come from recorded `Copy IN`; OUT is only asserted.
 
 BIND/UNBIND update an in-memory `Map<localSocket, { peerProcess, peerSocket, direction }>` used by the decoder UI, not by WASM.
 
-Minimal control surface today: `state` + `step` / `run`. DevTools `globalThis.replay` + seek is §9.
+Control surface: `state` + `step` / `run` / `seek`; DevTools via `installReplayDevtools` → `globalThis.replay`.
 
 ---
 
@@ -298,18 +298,30 @@ BIND/UNBIND frames stay in `io.bin` so the timeline can show topology changes. T
 
 - After start / dump: `bindings.bin`, `code.wasm` (when code was passed), and at least `registry.<target>.0.bin` exist (e.g. mock-module echo).
 - Host `bind` mid-recording → `process_bind_event` present in `io.bin`; new `registry.<peer>.*` appears.
-- Headless ReplayRuntime on an e2e dump asserts OUT (`module-debugger/ts-test`); registries are loaded for decode readiness (UI decode is §9).
+- Headless ReplayRuntime on an e2e dump asserts OUT (`module-debugger/ts-test`); UI decode uses captured registries.
 
 ---
 
 ## 7. UI direction (Recording mode)
 
-- Open `.waosrec` or a session folder.
+Implemented under [`src/components/`](./src/components/):
+
+| Piece | Path |
+|-------|------|
+| Mode switch + shell | [`App.vue`](./src/App.vue) (Recording default) |
+| Open dump | [`RecordingSource.vue`](./src/components/RecordingSource.vue) — `.waosrec` upload + session directory picker |
+| Workspace | [`RecordingDebugger.vue`](./src/components/RecordingDebugger.vue) |
+| Timeline / scrubber / detail / topology | [`components/recording/`](./src/components/recording/) |
+| Browser-safe replay API | [`src/replay/browser.ts`](./src/replay/browser.ts) |
+
+Behaviour:
+
+- Open `.waosrec` or a session folder (`buildDumpFromSessionFiles`).
 - Timeline: stimulus / expect / topology rows; filter by socket.
-- Scrubber + step; seek restores snapshot + prefix replay.
-- Socket hex view; RPC decode using the registry for `(peer)` or local socket as appropriate.
+- Scrubber + step; seek restores snapshot + prefix replay (`ReplayRuntime.seek`).
+- Socket hex view; RPC decode attempt using the registry for peer or local socket (`decodeSocketPayload`).
 - Surface replay failures (OUT mismatch) inline.
-- DevTools: `globalThis.replay`.
+- DevTools: `globalThis.replay` via `installReplayDevtools`.
 
 Interactive method-call UI stays available but is not the roadmap for this track.
 
@@ -327,7 +339,7 @@ See [`TODO.md`](./TODO.md). Summary:
 6. Recorder capture + BIND refresh.
 7. Packer `.waosrec`.
 8. ReplayRuntime + headless tests — done.
-9. UI timeline / decode.
+9. UI timeline / decode — done.
 
 ---
 

@@ -94,9 +94,9 @@ Mark items `[x]` only when the **done** criterion is met.
 
 ## 9. UI — Recording mode
 
-- [ ] Open `.waosrec` / session folder in module-debugger
-- [ ] Timeline (stimulus / expect / topology), scrubber, socket hex, RPC decode from registries
-- [ ] `globalThis.replay` hooks for DevTools stepping
+- [x] Open `.waosrec` / session folder in module-debugger
+- [x] Timeline (stimulus / expect / topology), scrubber, socket hex, RPC decode from registries
+- [x] `globalThis.replay` hooks for DevTools stepping
 
 **Done when:** manual open of a dump shows timeline and decode for at least one socket.
 
@@ -108,3 +108,18 @@ Mark items `[x]` only when the **done** criterion is met.
 - [ ] Do **not** remove or rewrite Interactive UI unless a later task explicitly asks
 
 **Done when:** Interactive still works for load-module + call method; no new Interactive features required for this track.
+
+---
+
+## 11. UI e2e (Playwright)
+
+- [x] Scaffold: `playwright.config.ts`, `e2e/` helpers, Vue `data-testid`s, `test:e2e` scripts
+- [x] **P0** R01 shell + R10 open echo + R33 Run / expectMatches
+- [x] **P1** timeline R20–R23, scrubber R30–R35, decode R40–R42, DevTools R70–R72
+- [x] **P2** R44 all replayable manifest fixtures (serial Run)
+- [x] **P3** errors R11/R12/R60/R61 + `dbg_topology` + R50–R52
+- [x] **P4** directory picker R13/R14 + Interactive smoke I01/I02
+- [x] README e2e section
+- [x] **Content fidelity** R80–R87: oracle from dump ↔ UI timeline/hex/exact expect-matches (+ echo golden payloads)
+
+**Done when:** `npm run test:e2e -w @wa-os/module-debugger` is green locally with generated `.waosrec` fixtures.

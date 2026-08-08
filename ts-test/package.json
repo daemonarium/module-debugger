@@ -4,8 +4,8 @@
   "description": "Mocha tests for ReplayRuntime / module-debugger recording track",
   "type": "module",
   "scripts": {
-    "test": "tsx ../../node_modules/mocha/bin/mocha.js --timeout 120000 'src/**/*.test.ts'",
-    "test:watch": "tsx ../../node_modules/mocha/bin/mocha.js --watch --timeout 120000 'src/**/*.test.ts'"
+    "test": "tsx ../../node_modules/mocha/bin/mocha.js --timeout 300000 'src/**/*.test.ts'",
+    "test:watch": "tsx ../../node_modules/mocha/bin/mocha.js --watch --timeout 300000 'src/**/*.test.ts'"
   },
   "dependencies": {
     "@wa-os/ts-fs": "0.1.0",

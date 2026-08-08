@@ -16,6 +16,7 @@ import {
   loadSessionDir,
   loadWaosrec,
   loadTypeRegistryFromBytes,
+  buildDumpFromSessionFiles,
   ReplayRuntime,
   ReplayError,
 } from '../../src/replay/index.js'
@@ -76,6 +77,15 @@ describe('ReplayRuntime headless', () => {
         expect(dump.memory.length).to.be.greaterThan(0)
         expect(dump.events.length).to.be.greaterThan(0)
 
+        const fileMap = new Map<string, Uint8Array>()
+        for (const name of listing) {
+          fileMap.set(name, new Uint8Array(await readFile(join(dir, name))))
+        }
+        const fromFiles = buildDumpFromSessionFiles(fileMap, typeRegistry)
+        expect(fromFiles.code.length).to.equal(dump.code.length)
+        expect(fromFiles.memory.length).to.equal(dump.memory.length)
+        expect(fromFiles.events.length).to.equal(dump.events.length)
+
         const packedPath = join(root, 'echo.waosrec')
         const pack = spawnSync(WAOSREC_BIN, ['pack', dir, '-o', packedPath], { encoding: 'utf8' })
         expect(pack.status, pack.stderr).to.equal(0)
@@ -85,6 +95,13 @@ describe('ReplayRuntime headless', () => {
         expect(fromWaosrec.events.length).to.equal(dump.events.length)
 
         const runtime = await ReplayRuntime.create(dump)
+        const mid = Math.min(3, runtime.frames.length)
+        await runtime.seek(mid)
+        expect(runtime.state.index).to.equal(mid)
+        await runtime.seek(0)
+        expect(runtime.state.index).to.equal(0)
+        expect(runtime.state.expectMatches).to.equal(0)
+
         try {
           runtime.run()
         } catch (error) {

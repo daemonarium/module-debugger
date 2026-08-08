@@ -7,8 +7,27 @@ Vue 3 + Vite UI for inspecting WASM modules.
 - Spec: [`RECORDING_DEBUGGER.md`](./RECORDING_DEBUGGER.md) — dump replay without kernel, `.waosrec`, registries, BIND topology events
 - Checklist: [`TODO.md`](./TODO.md)
 - Headless runtime: [`src/replay/`](./src/replay/) — load session / `.waosrec`, apply stimulus, assert Copy OUT
+- UI: Recording is the default mode in `App.vue` (Interactive remains behind the mode switch)
 
-The current UI still centers on **Interactive** load-and-call (legacy). Recording UI (timeline / scrubber) is §9; headless replay is implemented.
+### Open a dump in the UI
+
+```sh
+npm run dev -w @wa-os/module-debugger
+```
+
+Then upload a `.waosrec` (or pick a session folder). Timeline, scrubber, hex, and registry decode appear for each frame. DevTools: `globalThis.replay`.
+
+### Sample recording fixtures
+
+Six `dbg_*` WASM modules + generated `.waosrec` dumps for UI testing:
+
+```sh
+cmake --build cmake-build-emscripten --target dbg_echo dbg_hello dbg_counter dbg_kv dbg_stats dbg_shop
+cmake --build build --target waosrec
+npm run generate:recordings -w @wa-os/module-debugger
+```
+
+See [`fixtures/recordings/README.md`](./fixtures/recordings/README.md). Open dumps via `npm run dev -w @wa-os/module-debugger`.
 
 ### Headless replay tests
 
@@ -20,7 +39,28 @@ npm test -w @wa-os/module-debugger-tests
 npm test -w @wa-os/module-debugger
 ```
 
-Coverage: `parseMonitorFrames` unit tests + e2e mock-module echo dump → `ReplayRuntime.run()` OUT asserts.
+Coverage: frame/decode unit tests + e2e mock-module echo dump → `ReplayRuntime.run()` / `seek` OUT asserts.
+
+### UI e2e (Playwright)
+
+Automates Recording (and Interactive smoke) in Chromium. Does **not** replace Mocha headless tests.
+
+```sh
+# Prerequisites
+npm run generate:recordings -w @wa-os/module-debugger   # dbg_*.waosrec
+npx playwright install chromium                         # once per machine
+
+# From repo root or workspace
+npm run test:e2e -w @wa-os/module-debugger
+# Interactive UI mode:
+npm run test:e2e:ui -w @wa-os/module-debugger
+```
+
+`globalSetup` may also build `e2e/.cache/session-echo/`, `bad-echo.waosrec`, and `dbg_topology.waosrec` when missing (needs the same WASM / `waosrec` stack as generate).
+
+**Content fidelity:** `recording.content.spec.ts` loads the same `.waosrec` in Node (`loadWaosrec` + `parseMonitorFrames`) and asserts the UI timeline/hex/`expect-matches` match that oracle 1:1 (plus golden `hello-fixture` / `DE AD BE EF` for `dbg_echo`).
+
+CI note: full generate is heavy (emscripten). Prefer a local release gate for Recording; optional `workflow_dispatch` can run generate+e2e. Do not block merge on missing `.waosrec` artifacts.
 
 ## Recommended IDE Setup
 

@@ -16,9 +16,19 @@ export {
 } from './frames.js'
 export {
   loadSessionDir,
+  buildDumpFromSessionFiles,
   loadWaosrec,
   loadTypeRegistryFromBytes,
   deserializeTypedBytes,
+  type SessionFileMap,
 } from './load.js'
 export { ReplayHost } from './host.js'
-export { ReplayRuntime } from './runtime.js'
+export { ReplayRuntime, type ReplayState } from './runtime.js'
+export { installReplayDevtools, type ReplayDevtools } from './devtools.js'
+export {
+  decodeSocketPayload,
+  decodeSocketPayloadWithRegistryBytes,
+  resolveRegistryBytes,
+  type DecodedSocketMessage,
+  type DecodeSocketResult,
+} from './decode.js'

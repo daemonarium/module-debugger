@@ -22,8 +22,11 @@ export class Module {
       waos: {
         waos_socket_flush: (socket: number) => {
           this.handleSocketFlush(socket)
-        }
-      }
+        },
+        waos_socket_input_drain: (_socket: number) => {
+          // Host drain hook — Interactive UI has no peer; no-op is fine for smoke load.
+        },
+      },
     }    
     this.instance = await WebAssembly.instantiate(this.wasm, imports);
     //@ts-ignore

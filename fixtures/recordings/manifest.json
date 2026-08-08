@@ -1,0 +1,111 @@
+{
+  "generatedAt": "2026-08-08T06:07:06.178Z",
+  "fixtures": [
+    {
+      "id": "dbg_echo",
+      "file": "dbg_echo.waosrec",
+      "title": "Binary echo",
+      "complexity": 1,
+      "api": [
+        "echo"
+      ],
+      "expects": [
+        "stimulus",
+        "expect",
+        "hex"
+      ],
+      "notes": "Two echo payloads (text + binary)"
+    },
+    {
+      "id": "dbg_hello",
+      "file": "dbg_hello.waosrec",
+      "title": "Hello + fib",
+      "complexity": 2,
+      "api": [
+        "hello",
+        "fib"
+      ],
+      "expects": [
+        "stimulus",
+        "expect"
+      ],
+      "notes": "Pure functions returning string and u64"
+    },
+    {
+      "id": "dbg_counter",
+      "file": "dbg_counter.waosrec",
+      "title": "Stateful counter",
+      "complexity": 3,
+      "api": [
+        "get",
+        "set",
+        "inc"
+      ],
+      "expects": [
+        "stimulus",
+        "expect"
+      ],
+      "notes": "set(3), inc×2, get"
+    },
+    {
+      "id": "dbg_kv",
+      "file": "dbg_kv.waosrec",
+      "title": "Key-value store",
+      "complexity": 4,
+      "api": [
+        "put",
+        "get",
+        "keys"
+      ],
+      "expects": [
+        "stimulus",
+        "expect"
+      ],
+      "notes": "map put/get/keys with string vector"
+    },
+    {
+      "id": "dbg_stats",
+      "file": "dbg_stats.waosrec",
+      "title": "Stats summarize",
+      "complexity": 5,
+      "api": [
+        "summarize"
+      ],
+      "expects": [
+        "stimulus",
+        "expect"
+      ],
+      "notes": "enum + nested struct Sample → Stats"
+    },
+    {
+      "id": "dbg_shop",
+      "file": "dbg_shop.waosrec",
+      "title": "Mini shop + topology",
+      "complexity": 6,
+      "api": [
+        "name",
+        "symbol",
+        "mint",
+        "balanceOf",
+        "transfer"
+      ],
+      "expects": [
+        "stimulus",
+        "expect"
+      ],
+      "notes": "name/symbol/mint/balanceOf (transfer omitted for snap replay stability)"
+    },
+    {
+      "id": "dbg_topology",
+      "file": "dbg_topology.waosrec",
+      "title": "Topology bind-only",
+      "complexity": 0,
+      "api": [],
+      "expects": [
+        "topology"
+      ],
+      "notes": "Mid-session bind without RPC; allowZeroExpects",
+      "allowZeroExpects": true
+    }
+  ]
+}

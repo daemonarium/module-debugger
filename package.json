@@ -12,7 +12,10 @@
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "test": "npm test -w @wa-os/module-debugger-tests"
+    "test": "npm test -w @wa-os/module-debugger-tests",
+    "generate:recordings": "tsx scripts/generate-recordings.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@primeuix/themes": "^2.0.2",
@@ -33,6 +36,7 @@
     "style-mod": "^4.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.54.2",
     "@tsconfig/node22": "^22.0.2",
     "@types/node": "^22.18.11",
     "@vitejs/plugin-vue": "^6.0.1",

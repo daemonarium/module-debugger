@@ -22,7 +22,7 @@ export interface ReplayState {
 export class ReplayRuntime {
   readonly dump: RecordingDump
   readonly frames: DecodedFrame[]
-  readonly host: ReplayHost
+  host: ReplayHost
   readonly state: ReplayState
   private pendingOut: Map<number, Uint8Array[]>
 
@@ -62,6 +62,16 @@ export class ReplayRuntime {
       throw new ReplayError('RecordingDump.memory is empty')
     }
 
+    const { codecs } = createMonitorCodecs()
+    const frames = parseMonitorFrames(dump.events, codecs)
+    const { host, pendingOut } = await ReplayRuntime.createHost(dump)
+    return new ReplayRuntime(dump, host, frames, pendingOut)
+  }
+
+  private static async createHost(dump: RecordingDump): Promise<{
+    host: ReplayHost
+    pendingOut: Map<number, Uint8Array[]>
+  }> {
     const pendingOut = new Map<number, Uint8Array[]>()
     const host = await ReplayHost.create(
       dump.code,
@@ -74,10 +84,42 @@ export class ReplayRuntime {
         pendingOut.set(socket, q)
       }
     )
+    return { host, pendingOut }
+  }
 
-    const { codecs } = createMonitorCodecs()
-    const frames = parseMonitorFrames(dump.events, codecs)
-    return new ReplayRuntime(dump, host, frames, pendingOut)
+  private resetStateFromBindings(): void {
+    this.state.topology.clear()
+    for (const b of this.dump.bindings.bindings) {
+      this.state.topology.set(b.socket, {
+        peerProcess: b.peerProcess,
+        peerSocket: b.peerSocket,
+        direction: b.direction,
+      })
+    }
+    this.state.registries = new Map(this.dump.registries)
+    this.state.index = 0
+    this.state.expectMatches = 0
+    this.state.lastError = undefined
+    this.state.stopped = false
+  }
+
+  /**
+   * Restore snapshot and replay frames [0, index). Clamped to [0, total].
+   * On ReplayError, stops with lastError set (does not throw).
+   */
+  async seek(index: number): Promise<void> {
+    const clamped = Math.max(0, Math.min(Math.floor(index), this.frames.length))
+    const { host, pendingOut } = await ReplayRuntime.createHost(this.dump)
+    this.host = host
+    this.pendingOut = pendingOut
+    this.resetStateFromBindings()
+    while (this.state.index < clamped) {
+      try {
+        if (!this.step()) break
+      } catch {
+        break
+      }
+    }
   }
 
   step(): boolean {

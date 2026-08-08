@@ -29,7 +29,7 @@
             <span class="text-sm text-gray-500">OR</span>
           </Divider>
 
-          <div>
+          <div data-testid="wasm-upload">
             <label class="block mb-2 font-medium">Upload File</label>
             <FileUpload
               mode="basic"

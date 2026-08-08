@@ -1,200 +1,32 @@
 import fsp from 'node:fs/promises'
 import { join } from 'node:path'
+import type { TypeRegistry } from '@wa-os/ts-rpc'
+import type { RecordingDump } from './types.js'
 import {
-  CodecRegistry,
-  LocalCircularBuffer,
-  LocalCircularBufferReader,
-  deserializeTypeRegistry,
-  deserializeTypedJson,
-  ensureRpcCodecs,
-  registerDynamicCodecs,
-  type TypeRegistry,
-} from '@wa-os/ts-rpc'
-import {
-  type BindingsSnapshotView,
-  type RecordingDump,
-  type SessionMetaView,
-  type SnapshotMetaView,
-  num,
-  registryKey,
-} from './types.js'
+  buildDumpFromSessionFiles,
+  type SessionFileMap,
+} from './sessionFiles.js'
 
-function toLabels(raw: unknown): Record<string, string> {
-  if (!raw || typeof raw !== 'object') return {}
-  if (raw instanceof Map) {
-    const out: Record<string, string> = {}
-    for (const [k, v] of raw.entries()) {
-      out[String(k)] = String(v)
-    }
-    return out
-  }
-  const out: Record<string, string> = {}
-  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
-    out[k] = String(v)
-  }
-  return out
-}
-
-function sessionFromRaw(raw: Record<string, unknown>): SessionMetaView {
-  return {
-    name: String(raw.name ?? ''),
-    processId: num(raw.process_id),
-    status: String(raw.status ?? ''),
-    error: String(raw.error ?? ''),
-    labels: toLabels(raw.labels),
-  }
-}
-
-function snapshotFromRaw(raw: Record<string, unknown>): SnapshotMetaView {
-  return {
-    snapshotUid: num(raw.snapshot_uid),
-    manaUsed: num(raw.mana_used),
-    manaLimit: num(raw.mana_limit),
-    memorySize: num(raw.memory_size),
-  }
-}
-
-function bindingsFromRaw(raw: Record<string, unknown>): BindingsSnapshotView {
-  const list = Array.isArray(raw.bindings) ? raw.bindings : []
-  return {
-    processId: num(raw.process_id),
-    bindings: list.map((b: any) => ({
-      socket: num(b.socket),
-      peerProcess: num(b.peer_process),
-      peerSocket: num(b.peer_socket),
-      direction: num(b.direction),
-    })),
-  }
-}
-
-export function deserializeTypedBytes(
-  registry: TypeRegistry,
-  typeName: string,
-  bytes: Uint8Array
-): Record<string, unknown> {
-  const codecs = new CodecRegistry()
-  registerDynamicCodecs(codecs, registry)
-  ensureRpcCodecs(codecs, registry)
-  const buffer = new LocalCircularBuffer(Math.max(bytes.length + 256, 1024))
-  buffer.write(bytes, bytes.length)
-  const reader = new LocalCircularBufferReader(buffer, codecs)
-  return deserializeTypedJson(reader, registry, typeName) as Record<string, unknown>
-}
-
-async function readOptional(path: string): Promise<Uint8Array> {
-  try {
-    return new Uint8Array(await fsp.readFile(path))
-  } catch {
-    return new Uint8Array(0)
-  }
-}
+export {
+  buildDumpFromSessionFiles,
+  loadWaosrec,
+  loadTypeRegistryFromBytes,
+  deserializeTypedBytes,
+  type SessionFileMap,
+} from './sessionFiles.js'
 
 /**
- * Load typed session side-cars using a TypeRegistry that includes
- * session_meta / snapshot_meta / bindings_snapshot (e.g. debug-store session rpc_description).
+ * Load a debug-store session directory (Node only).
+ * Browser UI should use buildDumpFromSessionFiles with a SessionFileMap.
  */
 export async function loadSessionDir(
   dir: string,
   typeRegistry: TypeRegistry
 ): Promise<RecordingDump> {
   const names = await fsp.readdir(dir)
-  const snapMetas = names
-    .map((n) => /^snap\.(\d+)\.meta\.bin$/.exec(n))
-    .filter((m): m is RegExpExecArray => !!m)
-    .map((m) => ({ name: m[0], uid: Number(m[1]) }))
-  if (snapMetas.length === 0) {
-    throw new Error(`no snap.<uid>.meta.bin in ${dir}`)
-  }
-  snapMetas.sort((a, b) => b.uid - a.uid)
-  const best = snapMetas[0]
-
-  const sessionRaw = deserializeTypedBytes(
-    typeRegistry,
-    'session_meta',
-    await fsp.readFile(join(dir, 'meta.bin'))
-  )
-  const anchorRaw = deserializeTypedBytes(
-    typeRegistry,
-    'snapshot_meta',
-    await fsp.readFile(join(dir, best.name))
-  )
-
-  let bindings: BindingsSnapshotView = { processId: 0, bindings: [] }
-  try {
-    const bindingsRaw = deserializeTypedBytes(
-      typeRegistry,
-      'bindings_snapshot',
-      await fsp.readFile(join(dir, 'bindings.bin'))
-    )
-    bindings = bindingsFromRaw(bindingsRaw)
-  } catch {
-    /* optional */
-  }
-
-  const registries = new Map<string, Uint8Array>()
+  const files: SessionFileMap = new Map()
   for (const name of names) {
-    const m = /^registry\.(\d+)\.(\d+)\.bin$/.exec(name)
-    if (!m) continue
-    registries.set(
-      registryKey(Number(m[1]), Number(m[2])),
-      new Uint8Array(await fsp.readFile(join(dir, name)))
-    )
+    files.set(name, new Uint8Array(await fsp.readFile(join(dir, name))))
   }
-
-  return {
-    formatVersion: 1,
-    session: sessionFromRaw(sessionRaw),
-    anchor: snapshotFromRaw(anchorRaw),
-    code: await readOptional(join(dir, 'code.wasm')),
-    memory: new Uint8Array(await fsp.readFile(join(dir, `snap.${best.uid}.bin`))),
-    events: await readOptional(join(dir, 'io.bin')),
-    bindings,
-    registries,
-  }
-}
-
-export function loadWaosrec(bytes: Uint8Array, typeRegistry: TypeRegistry): RecordingDump {
-  const raw = deserializeTypedBytes(typeRegistry, 'waosrec_file', bytes)
-  const manifest = (raw.manifest ?? {}) as Record<string, unknown>
-  const session = sessionFromRaw((manifest.session ?? {}) as Record<string, unknown>)
-  const anchor = snapshotFromRaw((manifest.anchor ?? {}) as Record<string, unknown>)
-  const bindings = bindingsFromRaw((raw.bindings ?? {}) as Record<string, unknown>)
-
-  const registries = new Map<string, Uint8Array>()
-  const list = Array.isArray(raw.registries) ? raw.registries : []
-  for (const entry of list as any[]) {
-    const pid = num(entry.process_id)
-    const sock = num(entry.socket_id)
-    const blob = entry.bytes
-    const bytesArr = blob instanceof Uint8Array
-      ? blob
-      : Array.isArray(blob)
-        ? Uint8Array.from(blob)
-        : new Uint8Array(0)
-    registries.set(registryKey(pid, sock), bytesArr)
-  }
-
-  const toBin = (v: unknown): Uint8Array => {
-    if (v instanceof Uint8Array) return v
-    if (Array.isArray(v)) return Uint8Array.from(v as number[])
-    return new Uint8Array(0)
-  }
-
-  return {
-    formatVersion: num(manifest.format_version) || 1,
-    session,
-    anchor,
-    code: toBin(raw.code),
-    memory: toBin(raw.memory),
-    events: toBin(raw.events),
-    bindings,
-    registries,
-  }
-}
-
-/** Load TypeRegistry from a serialized rpc_description blob. */
-export function loadTypeRegistryFromBytes(bytes: Uint8Array): TypeRegistry {
-  const registry = deserializeTypeRegistry(bytes)
-  registry.assignMethodIds()
-  return registry
+  return buildDumpFromSessionFiles(files, typeRegistry)
 }
