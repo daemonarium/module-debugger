@@ -41,21 +41,43 @@
       @reset="onReset"
     />
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0">
-      <Timeline
-        :frames="runtime.frames"
-        :current-index="runtime.state.index"
-        :selected-index="selectedIndex"
-        @select="onSelectFrame"
-      />
-      <FrameDetail
-        :frame="selectedFrame"
-        :process-id="dump.session.processId"
-        :topology="topologySnapshot"
-        :registries="registriesSnapshot"
-        :replay-error="frameReplayError"
-      />
-    </div>
+    <Tabs v-model:value="activeTab" data-testid="recording-tabs" :lazy="true">
+      <TabList>
+        <Tab value="events" data-testid="tab-events">Events</Tab>
+        <Tab value="messages" data-testid="tab-messages">Messages</Tab>
+      </TabList>
+      <TabPanels>
+        <TabPanel value="events">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0 pt-3">
+            <Timeline
+              :frames="runtime.frames"
+              :current-index="runtime.state.index"
+              :selected-index="selectedIndex"
+              :highlight-indices="highlightFrameIndices"
+              @select="onSelectFrame"
+            />
+            <FrameDetail
+              :frame="selectedFrame"
+              :process-id="dump.session.processId"
+              :topology="topologySnapshot"
+              :registries="registriesSnapshot"
+              :replay-error="frameReplayError"
+            />
+          </div>
+        </TabPanel>
+        <TabPanel value="messages">
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0 pt-3">
+            <MessageStream
+              :messages="streamMessages"
+              :selected-id="selectedMessageId"
+              @select="onSelectMessage"
+              @jump="onJumpToEvent"
+            />
+            <MessageDetail :message="selectedMessage" @jump="onJumpToEvent" />
+          </div>
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
 
     <TopologyPanel :topology="topologySnapshot" :registries="registriesSnapshot" />
   </div>
@@ -65,13 +87,20 @@
   import { computed, onMounted, onUnmounted, ref } from 'vue'
   import Button from 'primevue/button'
   import Message from 'primevue/message'
+  import Tabs from 'primevue/tabs'
+  import TabList from 'primevue/tablist'
+  import Tab from 'primevue/tab'
+  import TabPanels from 'primevue/tabpanels'
+  import TabPanel from 'primevue/tabpanel'
   import Scrubber from './recording/Scrubber.vue'
   import Timeline from './recording/Timeline.vue'
   import FrameDetail from './recording/FrameDetail.vue'
+  import MessageStream from './recording/MessageStream.vue'
+  import MessageDetail from './recording/MessageDetail.vue'
   import TopologyPanel from './recording/TopologyPanel.vue'
   import {
     installReplayDevtools,
-    type RecordingDump,
+    buildMessageStream,
     type ReplayRuntime,
     ReplayError,
   } from '../replay/browser'
@@ -87,6 +116,9 @@
   const busy = ref(false)
   const selectedIndex = ref(0)
   const tick = ref(0)
+  const activeTab = ref<'events' | 'messages'>('events')
+  const selectedMessageId = ref<number | null>(null)
+  const highlightFrameIndices = ref<number[] | undefined>(undefined)
 
   const dump = computed(() => props.runtime.dump)
   const uiIndex = computed(() => {
@@ -118,12 +150,25 @@
     tick.value
     const err = props.runtime.state.lastError
     if (!err) return undefined
-    // Error was thrown while applying the frame that is now at index-1
     const failedAt = props.runtime.state.index - 1
     if (selectedIndex.value === failedAt || selectedIndex.value === props.runtime.state.index) {
       return err.message
     }
     return undefined
+  })
+
+  const streamMessages = computed(() =>
+    buildMessageStream(
+      props.runtime.frames,
+      dump.value.session.processId,
+      dump.value.bindings,
+      dump.value.registries
+    )
+  )
+
+  const selectedMessage = computed(() => {
+    if (selectedMessageId.value === null) return null
+    return streamMessages.value.find((m) => m.id === selectedMessageId.value) ?? null
   })
 
   function refresh() {
@@ -136,6 +181,9 @@
       refresh()
     })
     selectedIndex.value = props.runtime.state.index
+    if (streamMessages.value.length > 0) {
+      selectedMessageId.value = streamMessages.value[0]!.id
+    }
   })
 
   onUnmounted(() => {
@@ -158,6 +206,19 @@
     if (index !== props.runtime.state.index) {
       await onSeek(index)
     }
+  }
+
+  function onSelectMessage(id: number) {
+    selectedMessageId.value = id
+    const msg = streamMessages.value.find((m) => m.id === id)
+    highlightFrameIndices.value = msg?.frameIndices
+  }
+
+  async function onJumpToEvent(frameIndex: number) {
+    const msg = selectedMessage.value
+    highlightFrameIndices.value = msg?.frameIndices
+    activeTab.value = 'events'
+    await onSelectFrame(frameIndex)
   }
 
   function onStep() {

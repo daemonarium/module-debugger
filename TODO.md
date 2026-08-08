@@ -123,3 +123,15 @@ Mark items `[x]` only when the **done** criterion is met.
 - [x] **Content fidelity** R80–R87: oracle from dump ↔ UI timeline/hex/exact expect-matches (+ echo golden payloads)
 
 **Done when:** `npm run test:e2e -w @wa-os/module-debugger` is green locally with generated `.waosrec` fixtures.
+
+---
+
+## 12. Messages stream tab
+
+- [x] `buildMessageStream` — reassemble length-prefixed RPC across Copy IN/OUT; span → frame indices
+- [x] Unit tests (`messageStream.test.ts`)
+- [x] UI: Events | Messages tabs; MessageStream + MessageDetail; jump to Events
+- [x] Playwright smoke M01
+- [x] Spec / README / TODO notes
+
+**Done when:** opening `dbg_echo` / `dbg_shop` shows IN/OUT messages with decode and jump to contributing events.

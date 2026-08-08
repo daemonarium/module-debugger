@@ -15,7 +15,7 @@ Vue 3 + Vite UI for inspecting WASM modules.
 npm run dev -w @wa-os/module-debugger
 ```
 
-Then upload a `.waosrec` (or pick a session folder). Timeline, scrubber, hex, and registry decode appear for each frame. DevTools: `globalThis.replay`.
+Then upload a `.waosrec` (or pick a session folder). **Events** tab: timeline / scrubber / hex. **Messages** tab: reassembled RPC wire messages (IN/OUT per socket) with jump back to events. DevTools: `globalThis.replay`.
 
 ### Sample recording fixtures
 

@@ -32,3 +32,10 @@ export {
   type DecodedSocketMessage,
   type DecodeSocketResult,
 } from './decode.js'
+export {
+  buildMessageStream,
+  extractCompleteMessages,
+  type StreamMessage,
+  type StreamDirection,
+  type MessageByteSpan,
+} from './messageStream.js'

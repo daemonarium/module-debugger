@@ -317,9 +317,9 @@ Implemented under [`src/components/`](./src/components/):
 Behaviour:
 
 - Open `.waosrec` or a session folder (`buildDumpFromSessionFiles`).
-- Timeline: stimulus / expect / topology rows; filter by socket.
-- Scrubber + step; seek restores snapshot + prefix replay (`ReplayRuntime.seek`).
-- Socket hex view; RPC decode attempt using the registry for peer or local socket (`decodeSocketPayload`).
+- **Events** tab (low-level): timeline of monitor frames (stimulus / expect / topology); filter by socket; FrameDetail hex + per-Copy RPC decode.
+- **Messages** tab: reassembled length-prefixed RPC messages from Copy IN/OUT payloads (`buildMessageStream` in [`messageStream.ts`](./src/replay/messageStream.ts)). Each row is one wire message with socket + direction; spans map back to event indices for **Jump / Show in Events**.
+- Scrubber + step; seek restores snapshot + prefix replay (`ReplayRuntime.seek`) — shared above both tabs.
 - Surface replay failures (OUT mismatch) inline.
 - DevTools: `globalThis.replay` via `installReplayDevtools`.
 

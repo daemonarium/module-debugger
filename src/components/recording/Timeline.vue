@@ -38,6 +38,7 @@
             :class="{
               'bg-blue-100': row.index === selectedIndex,
               'bg-amber-50': row.index === currentIndex && row.index !== selectedIndex,
+              'ring-1 ring-inset ring-violet-300': highlightIndices?.includes(row.index),
             }"
             @click="$emit('select', row.index)"
           >
@@ -70,6 +71,8 @@
     frames: DecodedFrame[]
     currentIndex: number
     selectedIndex: number
+    /** Frame indices belonging to the selected Messages-tab message (optional highlight). */
+    highlightIndices?: number[]
   }>()
 
   defineEmits<{
