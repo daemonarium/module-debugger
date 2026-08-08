@@ -9,7 +9,7 @@ Related:
 - Debug-store layout: [`debug-store/README.md`](../debug-store/README.md)
 - Implementation checklist: [`TODO.md`](./TODO.md)
 
-Status: **spec only** — runtime, packer, and UI are tracked in `TODO.md`.
+Status: **§1–§8 implemented** — packer (`.waosrec`), headless `ReplayRuntime` under [`src/replay/`](./src/replay/), and e2e OUT asserts. UI timeline / scrubber is §9 (`TODO.md`).
 
 ---
 
@@ -38,7 +38,7 @@ Primary workflow: open a dump → scrub timeline → assert OUT bytes → decode
 
 | Mode | Status | Role |
 |------|--------|------|
-| **Recording** | Target product | Open `.waosrec` / session dump; replay + timeline + decode |
+| **Recording** | Headless replay done; UI pending | Load session / `.waosrec` via [`src/replay/`](./src/replay/); UI timeline + decode is §9 |
 | **Interactive** | Legacy | Load a WASM module, inspect registry, call methods via local RPC host — no kernel, no dump. Remains in the codebase for ad-hoc module poking; future “Interactive + Kernel” is out of scope for now |
 
 Default product focus is **Recording**.
@@ -138,13 +138,22 @@ Serialized `bindings_snapshot`:
 
 ## 5. ReplayRuntime (no kernel)
 
-Headless (and UI-backed) runner:
+Implemented in [`src/replay/`](./src/replay/):
+
+| File | Role |
+|------|------|
+| `load.ts` | `loadSessionDir` (binary session files) + `loadWaosrec` (typed `.waosrec` via fixture registry) |
+| `frames.ts` | `parseMonitorFrames` / classify stimulus · expect · topology |
+| `host.ts` | Kernel-free WASM host; restore snapshot memory; capture flush OUT |
+| `runtime.ts` | `ReplayRuntime.create` / `step` / `run` with OUT asserts + topology map |
+
+Algorithm:
 
 1. Instantiate target WASM with minimal imports.
-2. Restore linear memory from the dump snapshot.
+2. Restore linear memory from the dump snapshot (after optional `_initialize`/`start`, memory is overwritten from the snap).
 3. Walk `events` in order; for each decoded monitor frame apply §3.
 
-### Required imports (sketch)
+### Required imports
 
 | Import | Behavior |
 |--------|----------|
@@ -157,7 +166,7 @@ No peer sockets: IN payloads come from recorded `Copy IN`; OUT is only asserted.
 
 BIND/UNBIND update an in-memory `Map<localSocket, { peerProcess, peerSocket, direction }>` used by the decoder UI, not by WASM.
 
-Expose control surface for DevTools, e.g. `globalThis.replay = { step, seek, state }`.
+Minimal control surface today: `state` + `step` / `run`. DevTools `globalThis.replay` + seek is §9.
 
 ---
 
@@ -289,7 +298,7 @@ BIND/UNBIND frames stay in `io.bin` so the timeline can show topology changes. T
 
 - After start / dump: `bindings.bin`, `code.wasm` (when code was passed), and at least `registry.<target>.0.bin` exist (e.g. mock-module echo).
 - Host `bind` mid-recording → `process_bind_event` present in `io.bin`; new `registry.<peer>.*` appears.
-- Later: headless ReplayRuntime on an e2e dump asserts OUT; decode finds RPC using registries.
+- Headless ReplayRuntime on an e2e dump asserts OUT (`module-debugger/ts-test`); registries are loaded for decode readiness (UI decode is §9).
 
 ---
 
@@ -317,7 +326,7 @@ See [`TODO.md`](./TODO.md). Summary:
 5. Store topology messages (`debug_bindings_event` / `debug_registry_event`) + session file layout.
 6. Recorder capture + BIND refresh.
 7. Packer `.waosrec`.
-8. ReplayRuntime + headless tests.
+8. ReplayRuntime + headless tests — done.
 9. UI timeline / decode.
 
 ---

@@ -11,7 +11,8 @@
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
-    "type-check": "vue-tsc --build"
+    "type-check": "vue-tsc --build",
+    "test": "npm test -w @wa-os/module-debugger-tests"
   },
   "dependencies": {
     "@primeuix/themes": "^2.0.2",
@@ -22,6 +23,7 @@
     "tailwindcss-primeui": "^0.4.0",
     "vue": "^3.5.22",
     "@wa-os/ts-rpc": "0.1.0",
+    "@wa-os/ts-kernel": "0.1.0",
     "@lezer/highlight": "^1.1.0",
     "@lezer/cpp": "^1.0.0",
     "@lezer/javascript": "^1.0.0",

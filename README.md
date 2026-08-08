@@ -6,8 +6,21 @@ Vue 3 + Vite UI for inspecting WASM modules.
 
 - Spec: [`RECORDING_DEBUGGER.md`](./RECORDING_DEBUGGER.md) — dump replay without kernel, `.waosrec`, registries, BIND topology events
 - Checklist: [`TODO.md`](./TODO.md)
+- Headless runtime: [`src/replay/`](./src/replay/) — load session / `.waosrec`, apply stimulus, assert Copy OUT
 
-The current UI still centers on **Interactive** load-and-call (legacy). Recording mode is specified above; implementation follows `TODO.md`.
+The current UI still centers on **Interactive** load-and-call (legacy). Recording UI (timeline / scrubber) is §9; headless replay is implemented.
+
+### Headless replay tests
+
+From the repo root (needs a built recorder stack / WASM artifacts used by the e2e harness):
+
+```sh
+npm test -w @wa-os/module-debugger-tests
+# or
+npm test -w @wa-os/module-debugger
+```
+
+Coverage: `parseMonitorFrames` unit tests + e2e mock-module echo dump → `ReplayRuntime.run()` OUT asserts.
 
 ## Recommended IDE Setup
 

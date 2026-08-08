@@ -84,9 +84,9 @@ Mark items `[x]` only when the **done** criterion is met.
 
 ## 8. ReplayRuntime + headless tests
 
-- [ ] Instantiate target, restore memory, apply stimulus, assert expect OUT
-- [ ] Topology events update decode map without calling bind in WASM
-- [ ] Headless test on real e2e dump (mock-module echo path)
+- [x] Instantiate target, restore memory, apply stimulus, assert expect OUT
+- [x] Topology events update decode map without calling bind in WASM
+- [x] Headless test on real e2e dump (mock-module echo path)
 
 **Done when:** headless replay of an e2e dump passes OUT assertions.
 
