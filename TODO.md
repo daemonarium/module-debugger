@@ -62,10 +62,10 @@ Mark items `[x]` only when the **done** criterion is met.
 
 ## 6. Recorder capture + BIND refresh
 
-- [ ] Include `BIND` in monitor flags used for recording ([`DESIGN.md`](../recorder/DESIGN.md) + implementation)
-- [ ] After first complete save anchor: `list_socket_bindings` + `get_rpc_description` → `debug_bindings_event` / `debug_registry_event`
-- [ ] On `process_bind_event` / `process_unbind_event`: keep opaque frame in `io_bytes`; refresh peer registry via `debug_registry_event` on bind
-- [ ] Synthetic and/or e2e: files present after start; mid-session host bind → event in `io.bin` + new registry file
+- [x] Include `BIND` in monitor flags used for recording ([`DESIGN.md`](../recorder/DESIGN.md) + implementation)
+- [x] After first complete save anchor: `list_socket_bindings` + `get_rpc_description` → `debug_bindings_event` / `debug_registry_event`
+- [x] On `process_bind_event` / `process_unbind_event`: keep opaque frame in `io_bytes`; refresh peer registry via `debug_registry_event` on bind
+- [x] Synthetic and/or e2e: files present after start; mid-session host bind → event in `io.bin` + new registry file
 
 **Done when:** recorder e2e (or equivalent) asserts bindings + registry files and mid-session bind capture.
 
