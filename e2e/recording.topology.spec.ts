@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { existsSync } from 'node:fs'
 import { requireWaosrec, waosrecPath } from './fixtures'
-import { uploadWaosrec } from './helpers/upload'
+import { uploadWaosrec, uploadWaosrecEvents } from './helpers/upload'
 import { clickTimelineRow, step, waitIdle } from './helpers/recording'
 
 async function openEnvironment(page: import('@playwright/test').Page) {
@@ -45,7 +45,7 @@ test.describe('C7 Topology', () => {
     const path = waosrecPath('dbg_topology')
     test.skip(!existsSync(path), 'dbg_topology.waosrec missing — run generate or globalSetup')
     await page.goto('/')
-    await uploadWaosrec(page, path)
+    await uploadWaosrecEvents(page, path)
     const topoRows = page.locator('[data-testid="timeline-row"][data-frame-class="topology"]')
     await expect(topoRows.first()).toBeVisible()
     const idx = Number(await topoRows.first().getAttribute('data-frame-index'))

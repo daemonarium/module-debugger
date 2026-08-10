@@ -11,9 +11,13 @@ import {
 import {
   SAMPLE_MODULE_SPECS,
   DBG_TOKEN_SPEC,
+  DBG_CCLIENT_SPEC,
+  DBG_MIXED_SPEC,
   recordSampleFixture,
   recordTopologyFixture,
   recordTokenKvFixture,
+  recordCompClientFixture,
+  recordMixedFixture,
   packSession,
   withTempRoot,
   resolveWaosrecBin,
@@ -125,6 +129,60 @@ describe('sample recording fixtures', function () {
       } catch (error) {
         if (error instanceof ReplayError) {
           expect.fail(`${DBG_TOKEN_SPEC.id} replay failed: ${error.message}`)
+        }
+        throw error
+      }
+      expect(runtime.state.expectMatches).to.be.greaterThan(0)
+      expect(runtime.state.lastError).to.equal(undefined)
+    })
+  })
+
+  it('records dbg_cclient compressed↔compressed peer and replays', async () => {
+    await withTempRoot(async (root) => {
+      const recorded = await recordCompClientFixture(root)
+      const listing = await fsp.readdir(recorded.sessionDir)
+      expect(listing.some((f) => f === 'io.bin')).to.equal(true)
+
+      const packed = join(root, 'dbg_cclient.waosrec')
+      await packSession(recorded.sessionDir, packed, await resolveWaosrecBin())
+      const typeRegistry = loadTypeRegistryFromBytes(await readFile(FIXTURE_REGISTRY))
+      const dump = loadWaosrec(await readFile(packed), typeRegistry)
+      expect(dump.bindings.bindings.length).to.be.greaterThan(1)
+
+      const peerEntry = [...dump.registries.entries()].find(([k, v]) => {
+        return k.endsWith('.0') && k !== `${dump.session.processId}.0` && v.length > 0
+      })
+      expect(peerEntry, 'peer USER registry present').to.not.equal(undefined)
+
+      const runtime = await ReplayRuntime.create(dump)
+      try {
+        runtime.run()
+      } catch (error) {
+        if (error instanceof ReplayError) {
+          expect.fail(`${DBG_CCLIENT_SPEC.id} replay failed: ${error.message}`)
+        }
+        throw error
+      }
+      expect(runtime.state.expectMatches).to.be.greaterThan(0)
+      expect(runtime.state.lastError).to.equal(undefined)
+    })
+  })
+
+  it('records dbg_mixed flat USER + compressed peer and replays', async () => {
+    await withTempRoot(async (root) => {
+      const recorded = await recordMixedFixture(root)
+      const packed = join(root, 'dbg_mixed.waosrec')
+      await packSession(recorded.sessionDir, packed, await resolveWaosrecBin())
+      const typeRegistry = loadTypeRegistryFromBytes(await readFile(FIXTURE_REGISTRY))
+      const dump = loadWaosrec(await readFile(packed), typeRegistry)
+      expect(dump.bindings.bindings.length).to.be.greaterThan(1)
+
+      const runtime = await ReplayRuntime.create(dump)
+      try {
+        runtime.run()
+      } catch (error) {
+        if (error instanceof ReplayError) {
+          expect.fail(`${DBG_MIXED_SPEC.id} replay failed: ${error.message}`)
         }
         throw error
       }

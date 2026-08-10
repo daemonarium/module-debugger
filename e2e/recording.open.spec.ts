@@ -3,7 +3,7 @@ import { writeFileSync, mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { requireWaosrec, SESSION_ECHO_DIR } from './fixtures'
-import { uploadWaosrec, uploadWaosrecExpectError } from './helpers/upload'
+import { uploadWaosrec, uploadWaosrecEvents, uploadWaosrecExpectError } from './helpers/upload'
 import { stubSessionDirectoryPicker, stubNoDirectoryPicker } from './helpers/stubs'
 import { existsSync } from 'node:fs'
 
@@ -11,7 +11,7 @@ test.describe('C2 Open recording', () => {
   test('R10 upload dbg_echo opens debugger', async ({ page }) => {
     const path = requireWaosrec('dbg_echo')
     await page.goto('/')
-    await uploadWaosrec(page, path)
+    await uploadWaosrecEvents(page, path)
     await expect(page.getByTestId('recording-debugger')).toBeVisible()
     await expect(page.getByTestId('recording-meta')).toContainText('events=')
     await expect(page.getByTestId('timeline-row').first()).toBeVisible()

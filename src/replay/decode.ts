@@ -93,7 +93,7 @@ export function resolveConnectionDataFormat(
   if (localFmt !== null) {
     return { format: localFmt, conflict: false, source: 'local' }
   }
-  return { format: SerializationFormat.Compressed, conflict: false, source: 'default' }
+  return { format: SerializationFormat.Flat, conflict: false, source: 'default' }
 }
 
 /**
@@ -108,7 +108,7 @@ export function decodeSocketPayload(
     return { ok: false, messages: [], error: 'empty payload' }
   }
 
-  const dataFormat = typeRegistry.dataFormat ?? SerializationFormat.Compressed
+  const dataFormat = typeRegistry.dataFormat ?? SerializationFormat.Flat
   if (dataFormat === SerializationFormat.Key) {
     return {
       ok: false,

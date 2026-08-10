@@ -28,9 +28,13 @@ import { parseMonitorFrames } from '../../src/replay/frames.js'
 import {
   SAMPLE_MODULE_SPECS,
   DBG_TOKEN_SPEC,
+  DBG_CCLIENT_SPEC,
+  DBG_MIXED_SPEC,
+  buildDbgCpeerRegistry,
   type SampleModuleId,
   type SampleModuleSpec,
 } from './sampleRegistries.js'
+
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = join(__dirname, '../../..')
@@ -92,6 +96,16 @@ export async function injectTargetRegistry(
 ): Promise<void> {
   const bytes = serializeTypeRegistry(registry)
   await writeFile(join(sessionDir, `registry.${processId}.0.bin`), bytes)
+}
+
+export async function injectPeerRegistry(
+  sessionDir: string,
+  registry: TypeRegistry,
+  processId: number,
+  socketId: number = 0
+): Promise<void> {
+  const bytes = serializeTypeRegistry(registry)
+  await writeFile(join(sessionDir, `registry.${processId}.${socketId}.bin`), bytes)
 }
 
 /**
@@ -178,7 +192,9 @@ export async function driveSample(
       // Avoid transfer: replaying from a late snap is non-idempotent for balances.
       break
     }
-    case 'dbg_token': {
+    case 'dbg_token':
+    case 'dbg_cclient':
+    case 'dbg_mixed': {
       await call('name')
       await call('symbol')
       await call('mint', 'alice', 100n)
@@ -232,10 +248,12 @@ export async function recordSampleFixture(
     await driveSample(ctx, spec)
     await tick(40)
 
-    await ctx.userClient.call(ctx.methodId('dump'), result.recording_id)
+    await ctx.userClient.call(ctx.methodId('dump_and_clear'), result.recording_id)
     await tick(80)
 
-    await ctx.kernel.kill(TARGET_ID, `fixture-end-${spec.id}`)
+    // Kill without error string — a reason emits process_error_event and can
+    // trigger dump_on_error (second append of the same io window).
+    await ctx.kernel.kill(TARGET_ID)
     await tick(80)
 
     const storeSessionId = num(result.store_session_id)
@@ -297,15 +315,26 @@ async function registerWithShield(
 }
 
 /**
- * Multi-process fixture: dbg_token spawned via shield, balances in peer dbg_kv.
+ * Multi-process fixture: client spawned via shield, balances in peer KV/cpeer.
  */
-export async function recordTokenKvFixture(rootDir: string): Promise<RecordedFixture> {
-  const tokenPath = await assertWasmExists('dbg_token')
-  const kvPath = await assertWasmExists('dbg_kv')
+async function recordPeerTokenFixture(
+  rootDir: string,
+  options: {
+    spec: SampleModuleSpec
+    clientWasmId: SampleModuleId
+    peerWasmId: SampleModuleId
+    targetRpcFormat?: 'flat' | 'compressed'
+    buildPeerRegistry?: () => TypeRegistry
+  }
+): Promise<RecordedFixture> {
+  const tokenPath = await assertWasmExists(options.clientWasmId)
+  const kvPath = await assertWasmExists(options.peerWasmId)
   const ctx = await setupTokenKvEnvironment(rootDir, {
     tokenWasmPath: tokenPath,
     kvWasmPath: kvPath,
-    buildTokenRegistry: DBG_TOKEN_SPEC.buildRegistry,
+    buildTokenRegistry: options.spec.buildRegistry,
+    buildPeerRegistry: options.buildPeerRegistry,
+    targetRpcFormat: options.targetRpcFormat,
   })
   try {
     await tick(20)
@@ -314,10 +343,10 @@ export async function recordTokenKvFixture(rootDir: string): Promise<RecordedFix
     const result = (await ctx.userClient.call(ctx.methodId('start_recording'), {
       target_process: BigInt(ctx.tokenPid),
       store_process: BigInt(STORE_ID),
-      session_name: 'fixture-dbg_token',
+      session_name: `fixture-${options.spec.id}`,
       labels: {
-        sample: 'dbg_token',
-        complexity: String(DBG_TOKEN_SPEC.complexity),
+        sample: options.spec.id,
+        complexity: String(options.spec.complexity),
         kv_pid: String(ctx.kvPid),
       },
       config: {
@@ -329,31 +358,65 @@ export async function recordTokenKvFixture(rootDir: string): Promise<RecordedFix
     })) as Record<string, unknown>
 
     await tick(30)
-    await driveSample(ctx, DBG_TOKEN_SPEC)
+    await driveSample(ctx, options.spec)
     await tick(40)
 
-    await ctx.userClient.call(ctx.methodId('dump'), result.recording_id)
+    await ctx.userClient.call(ctx.methodId('dump_and_clear'), result.recording_id)
     await tick(80)
 
-    await ctx.kernel.kill(ctx.tokenPid, 'fixture-end-dbg_token')
+    await ctx.kernel.kill(ctx.tokenPid)
     await tick(80)
 
     const storeSessionId = num(result.store_session_id)
     const sessionDir = join(rootDir, 'sessions', String(storeSessionId))
     await injectTargetRegistry(sessionDir, ctx.targetRegistry, ctx.tokenPid)
+    if (ctx.peerRegistry) {
+      await injectPeerRegistry(sessionDir, ctx.peerRegistry, ctx.kvPid, 0)
+    }
     await preferEarliestSnapshot(sessionDir)
 
     return {
-      id: 'dbg_token',
+      id: options.spec.id,
       sessionDir,
       storeSessionId,
       recordingId: result.recording_id,
       registry: ctx.targetRegistry,
-      spec: DBG_TOKEN_SPEC,
+      spec: options.spec,
     }
   } finally {
     await ctx.cleanup()
   }
+}
+
+/** Multi-process fixture: dbg_token spawned via shield, balances in peer dbg_kv. */
+export async function recordTokenKvFixture(rootDir: string): Promise<RecordedFixture> {
+  return recordPeerTokenFixture(rootDir, {
+    spec: DBG_TOKEN_SPEC,
+    clientWasmId: 'dbg_token',
+    peerWasmId: 'dbg_kv',
+  })
+}
+
+/** Compressed↔compressed: dbg_cclient USER + peer dbg_cpeer. */
+export async function recordCompClientFixture(rootDir: string): Promise<RecordedFixture> {
+  return recordPeerTokenFixture(rootDir, {
+    spec: DBG_CCLIENT_SPEC,
+    clientWasmId: 'dbg_cclient',
+    peerWasmId: 'dbg_cpeer',
+    targetRpcFormat: 'compressed',
+    buildPeerRegistry: buildDbgCpeerRegistry,
+  })
+}
+
+/** Mixed: flat dbg_mixed USER + compressed peer dbg_cpeer. */
+export async function recordMixedFixture(rootDir: string): Promise<RecordedFixture> {
+  return recordPeerTokenFixture(rootDir, {
+    spec: DBG_MIXED_SPEC,
+    clientWasmId: 'dbg_mixed',
+    peerWasmId: 'dbg_cpeer',
+    targetRpcFormat: 'flat',
+    buildPeerRegistry: buildDbgCpeerRegistry,
+  })
 }
 
 /**
@@ -402,10 +465,10 @@ export async function recordTopologyFixture(rootDir: string): Promise<{
     await ctx.kernel.bind(TARGET_ID, 0, peerId, 0, Direction.BOTH)
     await tick(100)
 
-    await ctx.userClient.call(ctx.methodId('dump'), result.recording_id)
+    await ctx.userClient.call(ctx.methodId('dump_and_clear'), result.recording_id)
     await tick(80)
 
-    await ctx.kernel.kill(TARGET_ID, 'fixture-end-dbg_topology')
+    await ctx.kernel.kill(TARGET_ID)
     await tick(80)
 
     const storeSessionId = num(result.store_session_id)
@@ -452,4 +515,11 @@ export async function copySessionDir(src: string, dest: string): Promise<void> {
   }
 }
 
-export { SAMPLE_MODULE_SPECS, DBG_TOKEN_SPEC, withTempRoot, tick }
+export {
+  SAMPLE_MODULE_SPECS,
+  DBG_TOKEN_SPEC,
+  DBG_CCLIENT_SPEC,
+  DBG_MIXED_SPEC,
+  withTempRoot,
+  tick,
+}

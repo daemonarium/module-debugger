@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test'
 import { requireWaosrec } from './fixtures'
-import { uploadWaosrec } from './helpers/upload'
+import { uploadWaosrec, uploadWaosrecEvents } from './helpers/upload'
 import { clickTimelineRow } from './helpers/recording'
 
 test.describe('C3 Timeline', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    await uploadWaosrec(page, requireWaosrec('dbg_echo'))
+    await uploadWaosrecEvents(page, requireWaosrec('dbg_echo'))
   })
 
   test('R20 has stimulus and expect tags', async ({ page }) => {
@@ -79,7 +79,7 @@ test.describe('C3 Timeline', () => {
 test.describe('C3 Timeline empty payload', () => {
   test('R24 hello frame can show empty hex', async ({ page }) => {
     await page.goto('/')
-    await uploadWaosrec(page, requireWaosrec('dbg_hello'))
+    await uploadWaosrecEvents(page, requireWaosrec('dbg_hello'))
     const rows = page.getByTestId('timeline-row')
     const n = await rows.count()
     let foundEmpty = false

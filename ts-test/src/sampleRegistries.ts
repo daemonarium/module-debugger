@@ -2,6 +2,7 @@ import {
   TypeKind,
   TypeDescription,
   TypeRegistry,
+  SerializationFormat,
   ensureRpcTypesInRegistry,
 } from '@wa-os/ts-rpc'
 
@@ -291,6 +292,25 @@ export function buildDbgTokenRegistry(): TypeRegistry {
   return registry
 }
 
+/** Compressed DbgKv API (dbg_cpeer.wasm USER face). */
+export function buildDbgCpeerRegistry(): TypeRegistry {
+  const registry = buildDbgKvRegistry()
+  registry.dataFormat = SerializationFormat.Compressed
+  return registry
+}
+
+/** Compressed DbgToken API (dbg_cclient.wasm USER face). */
+export function buildDbgCclientRegistry(): TypeRegistry {
+  const registry = buildDbgTokenRegistry()
+  registry.dataFormat = SerializationFormat.Compressed
+  return registry
+}
+
+/** Flat DbgToken USER + compressed peer (dbg_mixed.wasm). */
+export function buildDbgMixedRegistry(): TypeRegistry {
+  return buildDbgTokenRegistry()
+}
+
 export type SampleModuleId =
   | 'dbg_echo'
   | 'dbg_hello'
@@ -299,6 +319,9 @@ export type SampleModuleId =
   | 'dbg_stats'
   | 'dbg_shop'
   | 'dbg_token'
+  | 'dbg_cpeer'
+  | 'dbg_cclient'
+  | 'dbg_mixed'
 
 export interface SampleModuleSpec {
   id: SampleModuleId
@@ -376,4 +399,26 @@ export const DBG_TOKEN_SPEC: SampleModuleSpec = {
   expects: ['stimulus', 'expect', 'topology'],
   notes: 'Spawned via kernel-shield; peer RPC to dbg_kv on socket 2',
   buildRegistry: buildDbgTokenRegistry,
+}
+
+/** Compressed USER + compressed peer (dbg_cclient ↔ dbg_cpeer). */
+export const DBG_CCLIENT_SPEC: SampleModuleSpec = {
+  id: 'dbg_cclient',
+  title: 'Compressed token ↔ compressed kv peer',
+  complexity: 8,
+  api: ['name', 'symbol', 'mint', 'balanceOf'],
+  expects: ['stimulus', 'expect', 'topology'],
+  notes: 'Both USER and peer RPC use compressed_socket_rpc_*; host SocketRpc compressed',
+  buildRegistry: buildDbgCclientRegistry,
+}
+
+/** Flat USER + compressed peer (dbg_mixed ↔ dbg_cpeer). */
+export const DBG_MIXED_SPEC: SampleModuleSpec = {
+  id: 'dbg_mixed',
+  title: 'Flat token USER + compressed kv peer',
+  complexity: 9,
+  api: ['name', 'symbol', 'mint', 'balanceOf'],
+  expects: ['stimulus', 'expect', 'topology'],
+  notes: 'Mixed formats: flat host↔USER, compressed client↔dbg_cpeer',
+  buildRegistry: buildDbgMixedRegistry,
 }

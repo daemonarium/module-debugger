@@ -48,7 +48,8 @@ test.describe('C4 Scrubber', () => {
     const matches = await readExpectMatches(page)
     expect(matches).toBeGreaterThanOrEqual(1)
     const { index, total } = await readScrubberIndex(page)
-    expect(index).toBe(total)
+    // Messages/Events scrubber sits on the last unit (0-based): index === total - 1
+    expect(index).toBe(total - 1)
     await expect(page.getByTestId('btn-step')).toBeDisabled()
     await expect(page.getByTestId('btn-run')).toBeDisabled()
   })

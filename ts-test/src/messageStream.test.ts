@@ -16,6 +16,7 @@ import {
   type BindingsSnapshotView,
 } from '../../src/replay/index.js'
 import { direction } from '@wa-os/ts-kernel/src/kernelApi.js'
+import { SerializationFormat } from '@wa-os/ts-rpc'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const FIXTURE_REGISTRY = join(__dirname, '../../fixtures/waosrec.rpc_description.bin')
@@ -129,7 +130,9 @@ describe('messageStream', () => {
     }
     const typeRegistry = loadTypeRegistryFromBytes(await readFile(FIXTURE_REGISTRY))
     const dump = loadWaosrec(await readFile(ECHO_WAOSREC), typeRegistry)
-    const frames = parseMonitorFrames(dump.events)
+    const frames = parseMonitorFrames(dump.events, {
+      format: SerializationFormat.Flat,
+    })
     const stream = buildMessageStream(
       frames,
       dump.session.processId,

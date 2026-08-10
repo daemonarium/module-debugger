@@ -63,6 +63,20 @@ describe('decodeSocketPayload', () => {
     expect(bytes.length).to.be.greaterThan(4)
     const registry = new TypeRegistry()
     ensureRpcTypesInRegistry(registry)
+    registry.dataFormat = SerializationFormat.Compressed
+    const result = decodeSocketPayload(bytes, registry)
+    expect(result.ok, result.error).to.equal(true)
+    expect(result.messages).to.have.length(1)
+    expect(result.messages[0].typeName).to.equal(RPC_REQUEST_TYPE)
+    const header = result.messages[0].header as Record<string, unknown>
+    expect(Number(header.request_id)).to.equal(7)
+    expect(Number(header.function_id)).to.equal(3)
+  })
+
+  it('decodes flat length-prefixed rpc_request (default dataFormat)', () => {
+    const bytes = encodeRpcRequestFrame(7, 3, 'flat')
+    const registry = new TypeRegistry()
+    ensureRpcTypesInRegistry(registry)
     const result = decodeSocketPayload(bytes, registry)
     expect(result.ok, result.error).to.equal(true)
     expect(result.messages).to.have.length(1)
@@ -151,9 +165,9 @@ describe('resolveConnectionDataFormat', () => {
     expect(r.source).to.equal('peer')
   })
 
-  it('defaults to compressed when neither present', () => {
+  it('defaults to flat when neither present', () => {
     const r = resolveConnectionDataFormat()
-    expect(r.format).to.equal(SerializationFormat.Compressed)
+    expect(r.format).to.equal(SerializationFormat.Flat)
     expect(r.source).to.equal('default')
   })
 

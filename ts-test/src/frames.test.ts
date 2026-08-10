@@ -1,4 +1,5 @@
 import { expect } from 'chai'
+import { SerializationFormat } from '@wa-os/ts-rpc'
 import { direction } from '@wa-os/ts-kernel/src/kernelApi.js'
 import {
   encodeMonitorFrame,
@@ -37,6 +38,27 @@ describe('parseMonitorFrames', () => {
     expect(Buffer.from(frames[0].payload).equals(Buffer.from(payload))).to.equal(true)
     expect(frames[1].typeName).to.equal('process_data_event')
     expect(frames[1].class).to.equal('stimulus')
+  })
+
+  it('parses flat monitor frames by default (independent of socket dataFormat)', () => {
+    const payload = new Uint8Array([9, 8, 7])
+    const events = encodeMonitorFrame(
+      'process_copy_event',
+      {
+        _type: 'process_copy_event',
+        process: 5,
+        socket: 0,
+        direction: direction.IN,
+        amount: payload.length,
+      },
+      payload
+    )
+    // ReplayRuntime always uses Flat for io.bin; compressed parse of flat
+    // frames would mis-read typeIndex / fail — default Flat must succeed.
+    const frames = parseMonitorFrames(events, { format: SerializationFormat.Flat })
+    expect(frames).to.have.length(1)
+    expect(frames[0].typeName).to.equal('process_copy_event')
+    expect(Buffer.from(frames[0].payload).equals(Buffer.from(payload))).to.equal(true)
   })
 
   it('classifies Copy OUT as expect and bind as topology', () => {

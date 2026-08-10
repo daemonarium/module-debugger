@@ -6,7 +6,7 @@ import {
   replayableFixtures,
   waosrecPath,
 } from './fixtures'
-import { uploadWaosrec } from './helpers/upload'
+import { uploadWaosrec, uploadWaosrecEvents } from './helpers/upload'
 import {
   clickTimelineRow,
   run,
@@ -75,7 +75,7 @@ test.describe('C11 Content fidelity — dbg_echo', () => {
     const path = requireWaosrec('dbg_echo')
     const oracle = loadOracle('dbg_echo')
     await page.goto('/')
-    await uploadWaosrec(page, path)
+    await uploadWaosrecEvents(page, path)
     await expect(page.getByTestId('timeline-row')).toHaveCount(oracle.frames.length)
   })
 
@@ -83,7 +83,7 @@ test.describe('C11 Content fidelity — dbg_echo', () => {
     const path = requireWaosrec('dbg_echo')
     const oracle = loadOracle('dbg_echo')
     await page.goto('/')
-    await uploadWaosrec(page, path)
+    await uploadWaosrecEvents(page, path)
     await assertTimelineMatchesOracle(page, oracle)
   })
 
@@ -91,7 +91,7 @@ test.describe('C11 Content fidelity — dbg_echo', () => {
     const path = requireWaosrec('dbg_echo')
     const oracle = loadOracle('dbg_echo')
     await page.goto('/')
-    await uploadWaosrec(page, path)
+    await uploadWaosrecEvents(page, path)
 
     const indices = new Set<number>()
     indices.add(0)
@@ -120,7 +120,7 @@ test.describe('C11 Content fidelity — dbg_echo', () => {
     const path = requireWaosrec('dbg_echo')
     const oracle = loadOracle('dbg_echo')
     await page.goto('/')
-    await uploadWaosrec(page, path)
+    await uploadWaosrecEvents(page, path)
 
     const withPayload = oracle.frames
       .map((f, i) => ({ f, i }))
@@ -137,7 +137,7 @@ test.describe('C11 Content fidelity — dbg_echo', () => {
     const path = requireWaosrec('dbg_echo')
     const oracle = loadOracle('dbg_echo')
     await page.goto('/')
-    await uploadWaosrec(page, path)
+    await uploadWaosrecEvents(page, path)
 
     let sawHello = false
     let sawBinary = false
@@ -187,7 +187,7 @@ test.describe('C11 Content fidelity — dbg_echo', () => {
     const oracle = loadOracle('dbg_echo')
     expect(expectFrameCount(oracle.frames)).toBeGreaterThan(0)
     await page.goto('/')
-    await uploadWaosrec(page, path)
+    await uploadWaosrecEvents(page, path)
     await assertExactExpectMatches(page, oracle)
   })
 })
@@ -201,7 +201,7 @@ test.describe('C11 Content fidelity — all fixtures', () => {
       const path = requireWaosrec(f.id)
       const oracle = loadOracle(f.id)
       await page.goto('/')
-      await uploadWaosrec(page, path)
+      await uploadWaosrecEvents(page, path)
       await assertTimelineMatchesOracle(page, oracle)
       await assertExactExpectMatches(page, oracle)
     })
@@ -215,7 +215,7 @@ test.describe('C11 Content fidelity — all fixtures', () => {
     expect(topoCount).toBeGreaterThanOrEqual(1)
 
     await page.goto('/')
-    await uploadWaosrec(page, path)
+    await uploadWaosrecEvents(page, path)
     await expect(
       page.locator('[data-testid="timeline-row"][data-frame-class="topology"]')
     ).toHaveCount(topoCount)

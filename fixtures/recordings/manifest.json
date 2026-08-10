@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-08T13:45:55.392Z",
+  "generatedAt": "2026-08-10T08:48:51.835Z",
   "fixtures": [
     {
       "id": "dbg_echo",
@@ -124,6 +124,42 @@
         "topology"
       ],
       "notes": "Spawned via kernel-shield; peer RPC to dbg_kv on socket 2"
+    },
+    {
+      "id": "dbg_cclient",
+      "file": "dbg_cclient.waosrec",
+      "title": "Compressed token ↔ compressed kv peer",
+      "complexity": 8,
+      "api": [
+        "name",
+        "symbol",
+        "mint",
+        "balanceOf"
+      ],
+      "expects": [
+        "stimulus",
+        "expect",
+        "topology"
+      ],
+      "notes": "Both USER and peer RPC use compressed_socket_rpc_*; host SocketRpc compressed"
+    },
+    {
+      "id": "dbg_mixed",
+      "file": "dbg_mixed.waosrec",
+      "title": "Flat token USER + compressed kv peer",
+      "complexity": 9,
+      "api": [
+        "name",
+        "symbol",
+        "mint",
+        "balanceOf"
+      ],
+      "expects": [
+        "stimulus",
+        "expect",
+        "topology"
+      ],
+      "notes": "Mixed formats: flat host↔USER, compressed client↔dbg_cpeer"
     }
   ]
 }

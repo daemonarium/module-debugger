@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { requireWaosrec } from './fixtures'
-import { uploadWaosrec } from './helpers/upload'
+import { uploadWaosrec, openEventsTab } from './helpers/upload'
 import { readScrubberIndex, closeDump, waitIdle } from './helpers/recording'
 
 test.describe('C9 DevTools / close', () => {
@@ -14,6 +14,8 @@ test.describe('C9 DevTools / close', () => {
   test('R71 replay.step bumps UI index', async ({ page }) => {
     await page.goto('/')
     await uploadWaosrec(page, requireWaosrec('dbg_echo'))
+    // Frame-level step only moves the Events scrubber (Messages steps by message).
+    await openEventsTab(page)
     const before = await readScrubberIndex(page)
     await page.evaluate(async () => {
       await (globalThis as any).replay.step()

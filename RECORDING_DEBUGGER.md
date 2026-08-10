@@ -29,7 +29,7 @@ Primary workflow: open a dump → scrub timeline → assert OUT bytes → decode
 
 - Full live kernel in the browser
 - DWARF / source-level debug (v1)
-- Recorder `dump_and_rotate` and seal-on-stop polish (separate recorder work)
+- Recorder `dump_and_rotate` (still not in v1; use `dump` / `dump_and_clear` / `rotate`) and seal-on-stop polish
 - Expanding the existing **Interactive** “call method on loaded module” UI (legacy; keep code, do not grow it here)
 
 ---
@@ -130,13 +130,18 @@ Serialized `bindings_snapshot`:
 ### Registry blobs
 
 - File name: `registry.<process_id>.<socket_id>.bin`
-- Payload: `rpc_description` bytes — `[envelope u8][compressed TypeRegistry body]` (see [cpp-rpc/type-registry-blob.md](../cpp-rpc/type-registry-blob.md)). Envelope nibble = data format: compressed / flat / key. Legacy blobs without bit7 → treat as compressed.
+- Payload: `rpc_description` bytes — `[envelope u8][compressed TypeRegistry body]` (see [cpp-rpc/type-registry-blob.md](../cpp-rpc/type-registry-blob.md)). Envelope nibble = **socket data format** for Copy payloads on that endpoint: compressed / flat / key. Legacy blobs without bit7 → treat as compressed.
 - Empty file or missing file → `registry_status: missing` for that key; do not fail the whole session
 - Written at start for target sockets + peers; **updated/added** when a `process_bind_event` introduces a new peer (see §7)
 
+**Monitor framing vs socket dataFormat**
+
+- `events` / `io.bin` monitor frames are **always flat** length-prefixed wire (`FlatSocketMessageChannel` / `ProcessMonitorEmitter`). `ReplayRuntime` parses them as Flat regardless of registry envelopes.
+- Registry envelope `dataFormat` applies only when decoding **socket Copy payloads** (RPC request/response bytes inside a Copy frame).
+
 **Decode format resolution** (`resolveConnectionDataFormat`):
 
-1. Prefer peer registry blob when present; else local; else default compressed.
+1. Prefer peer registry blob when present; else local; else default **flat**.
 2. If both peer and local present and formats differ → `formatConflict` (still decode using peer types/format).
 3. Socket Copy payloads: compressed and flat length-prefixed RPC decode; **key** format → unsupported as RPC stream (index/DB keys).
 
@@ -151,13 +156,13 @@ Implemented in [`src/replay/`](./src/replay/):
 | `load.ts` | `loadSessionDir` (binary session files) + `loadWaosrec` (typed `.waosrec` via fixture registry) |
 | `frames.ts` | `parseMonitorFrames` / classify stimulus · expect · topology |
 | `host.ts` | Kernel-free WASM host; restore snapshot memory; capture flush OUT |
-| `runtime.ts` | `ReplayRuntime.create` / `step` / `run` with OUT asserts + topology map |
+| `runtime.ts` | `ReplayRuntime.create` / `step` / `run` with OUT asserts + topology map (monitor parse always Flat) |
 
 Algorithm:
 
 1. Instantiate target WASM with minimal imports.
 2. Restore linear memory from the dump snapshot (after optional `_initialize`/`start`, memory is overwritten from the snap).
-3. Walk `events` in order; for each decoded monitor frame apply §3.
+3. Parse `events` as **flat** monitor frames; walk in order and apply §3.
 
 ### Required imports
 
@@ -329,7 +334,7 @@ Behaviour:
 - **Messages** tab: reassembled length-prefixed RPC messages from Copy IN/OUT payloads (`buildMessageStream`). Each row is one wire message with socket, direction, `request_id`, method signature summary, and return type. Correlated requests and responses are linked via color-coding on `request_id`. Select a message to view the fully typed `ValueTreeViewer` for parameters/return values alongside the hex dump and wire header. Spans map back to event indices for **Jump / Show in Events**.
 - **API** tab: browse all captured type registries (dropdown when multiple), object types and method signatures (read-only; no call) via shared `RegistryTypeBrowser`.
 - **Environment** tab: expandable socket bindings (`local ↔ peer`, direction labels); expanded row shows Local/Peer registries with the same browser; unbound keys under “Other registries”.
-- Sample **`dbg_token`**: typical multi-process dump (host USER + KERNEL_API↔shield + peer `dbg_kv`); contrasts with single-process `dbg_echo` / bind-only `dbg_topology`.
+- Fixture samples: **`dbg_token`** (flat host + flat peer `dbg_kv`), **`dbg_cclient`** (compressed USER + compressed peer `dbg_cpeer`), **`dbg_mixed`** (flat USER + compressed peer). Generate harness calls **`dump_and_clear`** (not bare `dump`) so `dump_on_error` cannot double-append `io.bin`. Contrasts with single-process `dbg_echo` / bind-only `dbg_topology`.
 - Scrubber + step; seek restores snapshot + prefix replay (`ReplayRuntime.seek`) — shared above tabs.
 - Surface replay failures (OUT mismatch) inline.
 - DevTools: `globalThis.replay` via `installReplayDevtools`.

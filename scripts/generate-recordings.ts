@@ -1,11 +1,13 @@
 #!/usr/bin/env npx tsx
 /**
  * Generate module-debugger/fixtures/recordings/*.waosrec for all dbg_* samples
- * plus dbg_topology (bind-only) and dbg_token (shield + kv peer).
+ * plus dbg_topology, dbg_token, dbg_cclient (compressed↔compressed), dbg_mixed.
  *
  * Prerequisites:
- *   cmake --build cmake-build-emscripten --target dbg_echo dbg_hello dbg_counter dbg_kv dbg_stats dbg_shop dbg_token
- *   cmake --build build --target waosrec
+ *   cmake --build cmake-build-emscripten --target \
+ *     dbg_echo dbg_hello dbg_counter dbg_kv dbg_stats dbg_shop dbg_token \
+ *     dbg_cpeer dbg_cclient dbg_mixed
+ *   cmake --build build --target waosrec   # or cmake-build-debug
  */
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
@@ -13,9 +15,13 @@ import { fileURLToPath } from 'node:url'
 import {
   SAMPLE_MODULE_SPECS,
   DBG_TOKEN_SPEC,
+  DBG_CCLIENT_SPEC,
+  DBG_MIXED_SPEC,
   recordSampleFixture,
   recordTopologyFixture,
   recordTokenKvFixture,
+  recordCompClientFixture,
+  recordMixedFixture,
   packSession,
   withTempRoot,
   resolveWaosrecBin,
@@ -83,6 +89,42 @@ async function main() {
       api: DBG_TOKEN_SPEC.api,
       expects: DBG_TOKEN_SPEC.expects,
       notes: DBG_TOKEN_SPEC.notes,
+    })
+  })
+
+  console.log(`\n=== Generating dbg_cclient (compressed ↔ compressed) ===`)
+  await withTempRoot(async (root) => {
+    const recorded = await recordCompClientFixture(root)
+    const outFile = 'dbg_cclient.waosrec'
+    const outPath = join(OUT_DIR, outFile)
+    await packSession(recorded.sessionDir, outPath, waosrecBin)
+    console.log(`Wrote ${outPath}`)
+    fixtures.push({
+      id: DBG_CCLIENT_SPEC.id,
+      file: outFile,
+      title: DBG_CCLIENT_SPEC.title,
+      complexity: DBG_CCLIENT_SPEC.complexity,
+      api: DBG_CCLIENT_SPEC.api,
+      expects: DBG_CCLIENT_SPEC.expects,
+      notes: DBG_CCLIENT_SPEC.notes,
+    })
+  })
+
+  console.log(`\n=== Generating dbg_mixed (flat USER + compressed peer) ===`)
+  await withTempRoot(async (root) => {
+    const recorded = await recordMixedFixture(root)
+    const outFile = 'dbg_mixed.waosrec'
+    const outPath = join(OUT_DIR, outFile)
+    await packSession(recorded.sessionDir, outPath, waosrecBin)
+    console.log(`Wrote ${outPath}`)
+    fixtures.push({
+      id: DBG_MIXED_SPEC.id,
+      file: outFile,
+      title: DBG_MIXED_SPEC.title,
+      complexity: DBG_MIXED_SPEC.complexity,
+      api: DBG_MIXED_SPEC.api,
+      expects: DBG_MIXED_SPEC.expects,
+      notes: DBG_MIXED_SPEC.notes,
     })
   })
 

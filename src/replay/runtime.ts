@@ -9,6 +9,7 @@ import {
   num,
   registryKey,
 } from './types.js'
+import { SerializationFormat } from '@wa-os/ts-rpc'
 
 export interface ReplayState {
   index: number
@@ -63,8 +64,14 @@ export class ReplayRuntime {
       throw new ReplayError('RecordingDump.memory is empty')
     }
 
+    // Monitor io.bin framing is always flat after the system cutover
+    // (ProcessMonitorEmitter / FlatSocketMessageChannel). Socket registry
+    // dataFormat only affects Copy payload decode, not monitor frame parse.
     const { codecs } = createMonitorCodecs()
-    const frames = parseMonitorFrames(dump.events, codecs)
+    const frames = parseMonitorFrames(dump.events, {
+      codecs,
+      format: SerializationFormat.Flat,
+    })
     const { host, pendingOut } = await ReplayRuntime.createHost(dump)
     return new ReplayRuntime(dump, host, frames, pendingOut)
   }

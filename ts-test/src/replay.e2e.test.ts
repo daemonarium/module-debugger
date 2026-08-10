@@ -58,10 +58,10 @@ describe('ReplayRuntime headless', () => {
         expect(Buffer.from(echoedB).equals(Buffer.from(payloadB))).to.equal(true)
         await tick(40)
 
-        await ctx.userClient.call(ctx.methodId('dump'), result.recording_id)
+        await ctx.userClient.call(ctx.methodId('dump_and_clear'), result.recording_id)
         await tick(80)
 
-        await ctx.kernel.kill(TARGET_ID, 'replay-fixture-end')
+        await ctx.kernel.kill(TARGET_ID)
         await tick(80)
 
         const sessionId = num(result.store_session_id)

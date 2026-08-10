@@ -13,6 +13,7 @@ export {
   encodeMonitorFrame,
   classifyFrame,
   createMonitorCodecs,
+  type ParseMonitorFramesOptions,
 } from './frames.js'
 export {
   loadSessionDir,

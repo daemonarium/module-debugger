@@ -19,11 +19,13 @@ Then upload a `.waosrec` (or pick a session folder). Dump header + scrubber stay
 
 ### Sample recording fixtures
 
-Six `dbg_*` WASM modules + `dbg_token` (shield + KV peer) + generated `.waosrec` dumps for UI testing:
+Ten fixtures: flat samples (`dbg_echo`…`dbg_token`) plus compressed/mixed (`dbg_cpeer` / `dbg_cclient` / `dbg_mixed`). Generate uses recorder **`dump_and_clear`**.
 
 ```sh
-cmake --build cmake-build-emscripten --target dbg_echo dbg_hello dbg_counter dbg_kv dbg_stats dbg_shop dbg_token
-cmake --build build --target waosrec
+cmake --build cmake-build-emscripten --target \
+  dbg_echo dbg_hello dbg_counter dbg_kv dbg_stats dbg_shop dbg_token \
+  dbg_cpeer dbg_cclient dbg_mixed
+cmake --build build --target waosrec   # or cmake-build-debug
 npm run generate:recordings -w @wa-os/module-debugger
 ```
 
@@ -56,11 +58,11 @@ npm run test:e2e -w @wa-os/module-debugger
 npm run test:e2e:ui -w @wa-os/module-debugger
 ```
 
-`globalSetup` may also build `e2e/.cache/session-echo/`, `bad-echo.waosrec`, and `dbg_topology.waosrec` when missing (needs the same WASM / `waosrec` stack as generate).
+Uses **`vite preview`** (not `vite dev`) to avoid ENOSPC from recursive file watchers. `globalSetup` may also build `e2e/.cache/session-echo/`, `bad-echo.waosrec`, and `dbg_topology.waosrec` when missing (needs the same WASM / `waosrec` stack as generate).
 
 **Content fidelity:** `recording.content.spec.ts` loads the same `.waosrec` in Node (`loadWaosrec` + `parseMonitorFrames`) and asserts the UI timeline/hex/`expect-matches` match that oracle 1:1 (plus golden `hello-fixture` / `DE AD BE EF` for `dbg_echo`).
 
-CI note: full generate is heavy (emscripten). Prefer a local release gate for Recording; optional `workflow_dispatch` can run generate+e2e. Do not block merge on missing `.waosrec` artifacts.
+**Local release gate** (mocha + Playwright + upstream suites): from repo root see [`TESTING.md`](../TESTING.md) → `npm run gate`. Optional `GATE_SKIP_E2E=1`. CI note: full generate is heavy (emscripten); do not block merge on missing `.waosrec` artifacts.
 
 ## Recommended IDE Setup
 
