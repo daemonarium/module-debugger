@@ -19,13 +19,13 @@ Then upload a `.waosrec` (or pick a session folder). Dump header + scrubber stay
 
 ### Sample recording fixtures
 
-Ten fixtures: flat samples (`dbg_echo`…`dbg_token`) plus compressed/mixed (`dbg_cpeer` / `dbg_cclient` / `dbg_mixed`). Generate uses recorder **`dump_and_clear`**.
+**10** `.waosrec` fixtures (`dbg_echo`…`dbg_shop`, `dbg_topology`, `dbg_token`, `dbg_cclient`, `dbg_mixed`). Peer WASM **`dbg_cpeer`** is a build dependency for the compressed/mixed dumps, not a recording itself. Generate uses recorder **`dump_and_clear`**.
 
 ```sh
 cmake --build cmake-build-emscripten --target \
   dbg_echo dbg_hello dbg_counter dbg_kv dbg_stats dbg_shop dbg_token \
   dbg_cpeer dbg_cclient dbg_mixed
-cmake --build build --target waosrec   # or cmake-build-debug
+cmake --build cmake-build-debug --target waosrec   # or build/ if that’s your tree
 npm run generate:recordings -w @wa-os/module-debugger
 ```
 

@@ -2,6 +2,8 @@
 
 Checklist for the recording debugger track. Spec: [`RECORDING_DEBUGGER.md`](./RECORDING_DEBUGGER.md).
 
+Local release gate: [`../TESTING.md`](../TESTING.md) → `npm run gate`.
+
 Mark items `[x]` only when the **done** criterion is met.
 
 ---
@@ -177,3 +179,15 @@ Mark items `[x]` only when the **done** criterion is met.
 - [x] Playwright R53 Environment asserts + fixtures README / TODO
 
 **Done when:** Environment for `dbg_token.waosrec` shows host, shield KERNEL_API, and KV peer bindings with non-empty peer registry.
+
+---
+
+## 16. Compressed / mixed wire fixtures
+
+- [x] Peer WASM `dbg_cpeer` (`WAOS_MODULE_RPC_COMPRESSED`) — DbgKv API for compressed clients
+- [x] `dbg_cclient` — compressed USER + compressed peer; harness + generate + headless replay
+- [x] `dbg_mixed` — flat USER + compressed peer; harness + generate + headless replay
+- [x] Playwright content / fixtures-all cover `dbg_cclient` and `dbg_mixed`
+- [x] Generate uses recorder `dump_and_clear`; fixtures README documents peer ≠ recording
+
+**Done when:** both `.waosrec` fixtures decode in UI and pass mocha/e2e with mixed/compressed registries.

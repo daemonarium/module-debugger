@@ -8,8 +8,9 @@ Related:
 - Recorder design: [`recorder/DESIGN.md`](../recorder/DESIGN.md)
 - Debug-store layout: [`debug-store/README.md`](../debug-store/README.md)
 - Implementation checklist: [`TODO.md`](./TODO.md)
+- Release gate: [`TESTING.md`](../TESTING.md) → `npm run gate`
 
-Status: **§1–§9 implemented** — packer (`.waosrec`), headless `ReplayRuntime` under [`src/replay/`](./src/replay/), Recording UI (app shell: Events / Messages / API / Environment, timeline / scrubber / hex+RPC decode / `globalThis.replay`). Interactive UI remains in the repo but is **not mounted** in the app shell.
+Status: **core shipped** — packer (`.waosrec`), headless `ReplayRuntime` under [`src/replay/`](./src/replay/), Recording UI (Events / Messages / API / Environment), Playwright e2e, fixtures including `dbg_token` / `dbg_cclient` / `dbg_mixed`. Checklist: [`TODO.md`](./TODO.md) (§1–§16). Interactive UI remains in the repo but is **not mounted** in the app shell.
 
 ---
 
@@ -83,7 +84,7 @@ Inferring bind/unbind only from I/O on the target’s kernel-API socket is **inc
 - Mid-session binds change which peer registry is needed for decode.
 - A snapshot of bindings at `start_recording` alone misses later graph changes.
 
-The claim in older kernel docs that bind/unbind need no separate monitor types is **outdated**; recording must use dedicated BIND events (see §6). Kernel README should be updated when those events are implemented.
+The claim in older kernel docs that bind/unbind need no separate monitor types is **outdated**; recording uses dedicated BIND events (see §6). Documented in [`ts-kernel/README.md`](../ts-kernel/README.md).
 
 ---
 
@@ -241,7 +242,7 @@ process_unbind_event {
 }
 ```
 
-Contract sources to update when implementing: [`cpp-rpc/src/examples/structures/kernel.hpp`](../cpp-rpc/src/examples/structures/kernel.hpp), [`ts-kernel/src/kernelApi.ts`](../ts-kernel/src/kernelApi.ts), [`ts-kernel/src/ProcessMonitorEmitter.ts`](../ts-kernel/src/ProcessMonitorEmitter.ts).
+Implemented in: [`cpp-rpc/src/examples/structures/kernel.hpp`](../cpp-rpc/src/examples/structures/kernel.hpp), [`ts-kernel/src/kernelApi.ts`](../ts-kernel/src/kernelApi.ts), [`ts-kernel/src/ProcessMonitorEmitter.ts`](../ts-kernel/src/ProcessMonitorEmitter.ts).
 
 **Emit rules:**
 
@@ -305,7 +306,7 @@ After the first complete save anchor in `start_recording` ([`recorder/src/record
 
 BIND/UNBIND frames stay in `io.bin` so the timeline can show topology changes. They should be counted toward the rotate byte threshold like other retained I/O frames (or documented if excluded — default: **include**).
 
-### 6.6 Tests (when implementing)
+### 6.6 Tests (coverage)
 
 - After start / dump: `bindings.bin`, `code.wasm` (when code was passed), and at least `registry.<target>.0.bin` exist (e.g. mock-module echo).
 - Host `bind` mid-recording → `process_bind_event` present in `io.bin`; new `registry.<peer>.*` appears.
@@ -345,17 +346,17 @@ Interactive method-call UI is kept in the repo but not mounted in this shell.
 
 ## 8. Implementation order
 
-See [`TODO.md`](./TODO.md). Summary:
+See [`TODO.md`](./TODO.md). Summary (all done for the recording track):
 
-1. Spec (this document) — done when merged.
-2. Kernel BIND events + README fix.
-3. Kernel `list_socket_bindings` / `get_rpc_description`.
-4. Shield pass-through.
-5. Store topology messages (`debug_bindings_event` / `debug_registry_event`) + session file layout.
-6. Recorder capture + BIND refresh.
-7. Packer `.waosrec`.
+1. Spec (this document) — done.
+2. Kernel BIND events + README — done.
+3. Kernel `list_socket_bindings` / `get_rpc_description` — done.
+4. Shield pass-through — done.
+5. Store topology messages (`debug_bindings_event` / `debug_registry_event`) + session file layout — done.
+6. Recorder capture + BIND refresh — done.
+7. Packer `.waosrec` — done.
 8. ReplayRuntime + headless tests — done.
-9. UI timeline / decode — done.
+9. UI timeline / decode / Messages / Environment / Playwright / fixtures — done.
 
 ---
 
