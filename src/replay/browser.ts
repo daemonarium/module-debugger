@@ -36,6 +36,8 @@ export {
   decodeSocketPayload,
   decodeSocketPayloadWithRegistryBytes,
   resolveRegistryBytes,
+  resolveConnectionDataFormat,
+  peekRegistryDataFormat,
   type DecodedSocketMessage,
   type DecodeSocketResult,
 } from './decode.js'

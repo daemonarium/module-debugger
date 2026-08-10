@@ -130,9 +130,15 @@ Serialized `bindings_snapshot`:
 ### Registry blobs
 
 - File name: `registry.<process_id>.<socket_id>.bin`
-- Payload: raw `rpc_description` bytes (same wire as WASM `rpc_description` export / serialized `TypeRegistry`)
+- Payload: `rpc_description` bytes — `[envelope u8][compressed TypeRegistry body]` (see [cpp-rpc/type-registry-blob.md](../cpp-rpc/type-registry-blob.md)). Envelope nibble = data format: compressed / flat / key. Legacy blobs without bit7 → treat as compressed.
 - Empty file or missing file → `registry_status: missing` for that key; do not fail the whole session
 - Written at start for target sockets + peers; **updated/added** when a `process_bind_event` introduces a new peer (see §7)
+
+**Decode format resolution** (`resolveConnectionDataFormat`):
+
+1. Prefer peer registry blob when present; else local; else default compressed.
+2. If both peer and local present and formats differ → `formatConflict` (still decode using peer types/format).
+3. Socket Copy payloads: compressed and flat length-prefixed RPC decode; **key** format → unsupported as RPC stream (index/DB keys).
 
 ---
 

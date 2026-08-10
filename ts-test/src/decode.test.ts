@@ -3,14 +3,20 @@ import {
   CodecRegistry,
   LocalSocket,
   SocketMessageChannel,
+  FlatSocketMessageChannel,
   TypeRegistry,
   ensureRpcCodecs,
   ensureRpcTypesInRegistry,
   RPC_REQUEST_TYPE,
+  SerializationFormat,
+  serializeTypeRegistry,
+  packSerializationFormatEnvelope,
 } from '@wa-os/ts-rpc'
 import {
   decodeSocketPayload,
   resolveRegistryBytes,
+  resolveConnectionDataFormat,
+  peekRegistryDataFormat,
 } from '../../src/replay/decode.js'
 import { registryKey } from '../../src/replay/types.js'
 
@@ -24,13 +30,20 @@ const SOCKET_OPTS = {
   flags: 0,
 }
 
-function encodeRpcRequestFrame(requestId: number, functionId: number): Uint8Array {
+function encodeRpcRequestFrame(
+  requestId: number,
+  functionId: number,
+  format: 'compressed' | 'flat' = 'compressed'
+): Uint8Array {
   const registry = new TypeRegistry()
   ensureRpcTypesInRegistry(registry)
   const codecs = new CodecRegistry()
   ensureRpcCodecs(codecs, registry)
   const socket = new LocalSocket(0, SOCKET_OPTS)
-  const channel = new SocketMessageChannel(socket, codecs)
+  const channel =
+    format === 'flat'
+      ? new FlatSocketMessageChannel(socket, codecs)
+      : new SocketMessageChannel(socket, codecs)
   channel.registerMessageType(RPC_REQUEST_TYPE)
   channel.sendMessage(RPC_REQUEST_TYPE, {
     _type: RPC_REQUEST_TYPE,
@@ -59,6 +72,29 @@ describe('decodeSocketPayload', () => {
     expect(Number(header.function_id)).to.equal(3)
   })
 
+  it('decodes flat length-prefixed rpc_request', () => {
+    const bytes = encodeRpcRequestFrame(7, 3, 'flat')
+    const registry = new TypeRegistry()
+    ensureRpcTypesInRegistry(registry)
+    registry.dataFormat = SerializationFormat.Flat
+    const result = decodeSocketPayload(bytes, registry)
+    expect(result.ok, result.error).to.equal(true)
+    expect(result.messages).to.have.length(1)
+    expect(result.messages[0].typeName).to.equal(RPC_REQUEST_TYPE)
+    const header = result.messages[0].header as Record<string, unknown>
+    expect(Number(header.request_id)).to.equal(7)
+    expect(Number(header.function_id)).to.equal(3)
+  })
+
+  it('rejects key format as unsupported RPC stream', () => {
+    const registry = new TypeRegistry()
+    ensureRpcTypesInRegistry(registry)
+    registry.dataFormat = SerializationFormat.Key
+    const result = decodeSocketPayload(new Uint8Array([0, 0, 0, 4, 1, 2, 3, 4]), registry)
+    expect(result.ok).to.equal(false)
+    expect(result.unsupportedFormat).to.equal('key')
+  })
+
   it('fails clearly on raw non-RPC bytes', () => {
     const registry = new TypeRegistry()
     ensureRpcTypesInRegistry(registry)
@@ -80,5 +116,50 @@ describe('resolveRegistryBytes', () => {
     const resolved = resolveRegistryBytes(0, 5, topology, registries)
     expect(resolved.key).to.equal('9.1')
     expect(resolved.bytes!.length).to.equal(2)
+  })
+})
+
+describe('resolveConnectionDataFormat', () => {
+  function blobWithFormat(format: SerializationFormat): Uint8Array {
+    const registry = new TypeRegistry()
+    ensureRpcTypesInRegistry(registry)
+    registry.dataFormat = format
+    return serializeTypeRegistry(registry)
+  }
+
+  it('uses peer when only peer present', () => {
+    const peer = blobWithFormat(SerializationFormat.Flat)
+    const r = resolveConnectionDataFormat(undefined, peer)
+    expect(r.format).to.equal(SerializationFormat.Flat)
+    expect(r.conflict).to.equal(false)
+    expect(r.source).to.equal('peer')
+  })
+
+  it('uses local when only local present', () => {
+    const local = blobWithFormat(SerializationFormat.Key)
+    const r = resolveConnectionDataFormat(local, undefined)
+    expect(r.format).to.equal(SerializationFormat.Key)
+    expect(r.source).to.equal('local')
+  })
+
+  it('flags conflict when peer and local differ', () => {
+    const peer = blobWithFormat(SerializationFormat.Flat)
+    const local = blobWithFormat(SerializationFormat.Compressed)
+    const r = resolveConnectionDataFormat(local, peer)
+    expect(r.conflict).to.equal(true)
+    expect(r.format).to.equal(SerializationFormat.Flat)
+    expect(r.source).to.equal('peer')
+  })
+
+  it('defaults to compressed when neither present', () => {
+    const r = resolveConnectionDataFormat()
+    expect(r.format).to.equal(SerializationFormat.Compressed)
+    expect(r.source).to.equal('default')
+  })
+
+  it('peekRegistryDataFormat reads envelope', () => {
+    const blob = blobWithFormat(SerializationFormat.Key)
+    expect(blob[0]).to.equal(packSerializationFormatEnvelope(SerializationFormat.Key))
+    expect(peekRegistryDataFormat(blob)).to.equal(SerializationFormat.Key)
   })
 })

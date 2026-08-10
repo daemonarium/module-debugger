@@ -21,6 +21,7 @@ import {
 import {
   decodeSocketPayloadWithRegistryBytes,
   resolveRegistryBytes,
+  resolveConnectionDataFormat,
 } from './decode.js'
 import { loadTypeRegistryFromBytes } from './sessionFiles.js'
 
@@ -49,6 +50,8 @@ export interface StreamMessage {
   decodeError?: string
   registryKey?: string
   incomplete?: boolean
+  dataFormat?: number
+  formatConflict?: boolean
 }
 
 export interface ExtractedFramed {
@@ -289,6 +292,13 @@ function drainCompleteMessages(
     const { bytes, spans } = takeBytes(ch, total)
     const body = bytes.subarray(4)
     const resolved = resolveRegistryBytes(socket, processId, topology, registries)
+    const localKey = registryKey(processId, socket)
+    const localBytes = registries.get(localKey)
+    const peer = topology.get(socket)
+    const peerBytes = peer
+      ? registries.get(registryKey(peer.peerProcess, peer.peerSocket))
+      : undefined
+    const formatInfo = resolveConnectionDataFormat(localBytes, peerBytes)
     const decoded = decodeOneFramedMessage(bytes, resolved.bytes)
     out.push({
       id: nextId(),
@@ -298,8 +308,13 @@ function drainCompleteMessages(
       body,
       spans,
       frameIndices: uniqueSortedFrameIndices(spans),
+      typeName: decoded.typeName,
+      header: decoded.header,
+      payloadSize: decoded.payloadSize,
+      decodeError: decoded.decodeError,
       registryKey: resolved.key,
-      ...decoded,
+      dataFormat: formatInfo.format,
+      formatConflict: formatInfo.conflict || undefined,
     })
   }
 }
