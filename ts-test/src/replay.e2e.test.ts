@@ -20,6 +20,7 @@ import {
   ReplayRuntime,
   ReplayError,
 } from '../../src/replay/index.js'
+import { resolveWaosrecBin } from './fixtureHarness.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const FIXTURE_REGISTRY = join(__dirname, '../../fixtures/waosrec.rpc_description.bin')
@@ -27,7 +28,6 @@ const MOCK_MODULE_WASM = join(
   __dirname,
   '../../../cmake-build-emscripten/kernel-shield/cpp-test/mock-module.wasm'
 )
-const WAOSREC_BIN = join(__dirname, '../../../build/waosrec')
 
 describe('ReplayRuntime headless', () => {
   it('replays mock-module echo dump and asserts Copy OUT', async () => {
@@ -87,8 +87,9 @@ describe('ReplayRuntime headless', () => {
         expect(fromFiles.events.length).to.equal(dump.events.length)
 
         const packedPath = join(root, 'echo.waosrec')
-        const pack = spawnSync(WAOSREC_BIN, ['pack', dir, '-o', packedPath], { encoding: 'utf8' })
-        expect(pack.status, pack.stderr).to.equal(0)
+        const waosrec = await resolveWaosrecBin()
+        const pack = spawnSync(waosrec, ['pack', dir, '-o', packedPath], { encoding: 'utf8' })
+        expect(pack.status, pack.stderr || pack.error?.message).to.equal(0)
         const fromWaosrec = loadWaosrec(await readFile(packedPath), typeRegistry)
         expect(fromWaosrec.code.length).to.equal(dump.code.length)
         expect(fromWaosrec.memory.length).to.equal(dump.memory.length)
