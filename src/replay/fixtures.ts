@@ -1,5 +1,5 @@
 import { loadTypeRegistryFromBytes } from './sessionFiles.js'
-import type { TypeRegistry } from '@wa-os/ts-rpc'
+import type { TypeRegistry } from '@daemonarium/rpc'
 
 /** Vite resolves `?url` to a served asset URL. */
 import waosrecRegistryUrl from '../../fixtures/waosrec.rpc_description.bin?url'

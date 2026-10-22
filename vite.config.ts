@@ -16,14 +16,15 @@ export default defineConfig({
     tailwindcss(),
   ],
   optimizeDeps: {
-    include: ['@wa-os/ts-rpc'],
+    include: ['@daemonarium/rpc', '@daemonarium/kernel'],
   },
   build: {
 
   },
   ssr: {
     noExternal: [
-      '@wa-os/ts-rpc'
+      '@daemonarium/rpc',
+      '@daemonarium/kernel',
     ],
   },
   resolve: {

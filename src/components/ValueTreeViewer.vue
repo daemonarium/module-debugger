@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, inject, provide } from 'vue'
-import { TypeKind, type TypeDescription, type TypeRegistry } from '@wa-os/ts-rpc'
+import { TypeKind, type TypeDescription, type TypeRegistry } from '@daemonarium/rpc'
 
 const props = withDefaults(
   defineProps<{

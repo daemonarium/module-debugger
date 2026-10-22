@@ -85,6 +85,7 @@
 
   function onChange(value: number | number[]) {
     const v = Array.isArray(value) ? value[0] : value
+    if (v === undefined) return
     emit('seek', v)
   }
 </script>

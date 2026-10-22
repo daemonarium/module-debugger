@@ -6,15 +6,15 @@ import {
   TypeKind,
   SerializationFormat,
   type TypeRegistry,
-} from '@wa-os/ts-rpc'
-import { CodecRegistry } from '@wa-os/ts-rpc'
+} from '@daemonarium/rpc'
+import { CodecRegistry } from '@daemonarium/rpc'
 import {
   registerDynamicCodecs,
   serializeValueByType,
   deserializeValueByType,
   type JsonValue,
-} from '@wa-os/ts-rpc'
-import { createGeneratedTypeRegistry } from '@wa-os/ts-kernel/src/kernelApi.js'
+} from '@daemonarium/rpc'
+import { kernelApi } from '@daemonarium/kernel'
 import {
   type DecodedFrame,
   type FrameClass,
@@ -30,7 +30,7 @@ export interface MonitorCodecs {
 }
 
 export function createMonitorCodecs(): MonitorCodecs {
-  const { registry } = createGeneratedTypeRegistry()
+  const { registry } = kernelApi.createGeneratedTypeRegistry()
   const codecs = new CodecRegistry()
   registerDynamicCodecs(codecs as any, registry as any)
   for (const type of registry.getTypes()) {

@@ -129,12 +129,12 @@
   import Tag from 'primevue/tag'
   import TypeViewer from './TypeViewer.vue'
 import ValueTreeViewer from './ValueTreeViewer.vue'
-  import type { TypeDescription, TypeRegistry, TypedValue } from '@wa-os/ts-rpc'
-  import { TypeKind } from '@wa-os/ts-rpc'
-  import { Reader } from '@wa-os/ts-rpc'
-  import { deserializeValueByType } from '@wa-os/ts-rpc'
-  import { CodecRegistry } from '@wa-os/ts-rpc'
-  import { registerDynamicCodecs } from '@wa-os/ts-rpc'
+  import type { TypeDescription, TypeRegistry, TypedValue } from '@daemonarium/rpc'
+  import { TypeKind } from '@daemonarium/rpc'
+  import { Reader } from '@daemonarium/rpc'
+  import { deserializeValueByType } from '@daemonarium/rpc'
+  import { CodecRegistry } from '@daemonarium/rpc'
+  import { registerDynamicCodecs } from '@daemonarium/rpc'
 
   const props = defineProps<{
     data: Uint8Array

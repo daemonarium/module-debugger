@@ -1,0 +1,15 @@
+module-debugger
+Copyright (c) 2026 Magowie Sp. z o.o.
+
+This app depends on @daemonarium/kernel 0.1.0 and @daemonarium/rpc 0.1.0:
+https://github.com/daemonarium/kernel-ts
+https://github.com/daemonarium/rpc-ts
+
+Fixture generation uses daemonarium/recorder-cpp, debug-store-cpp,
+kernel-shield-cpp, and rpc-cpp at v0.1.0:
+https://github.com/daemonarium/recorder-cpp
+https://github.com/daemonarium/debug-store-cpp
+https://github.com/daemonarium/kernel-shield-cpp
+https://github.com/daemonarium/rpc-cpp
+
+Vue, PrimeVue, Tailwind, and CodeMirror stay npm dependencies.

@@ -10,8 +10,8 @@ import {
   ensureRpcCodecs,
   deserializeTypeRegistry,
   type TypeRegistry,
-} from '@wa-os/ts-rpc'
-import { LocalProcess, Direction } from '@wa-os/ts-kernel'
+} from '@daemonarium/rpc'
+import { LocalProcess, Direction, kernelApi } from '@daemonarium/kernel'
 import {
   setupWasmTargetEnvironment,
   setupTokenKvEnvironment,
@@ -23,7 +23,7 @@ import {
   CLIENT_ID,
   SOCKET_OPTS,
   type WasmTargetTestContext,
-} from '../../../recorder/ts-test/src/setup.js'
+} from '../../extern/recorder-cpp/ts-test/src/setup.ts'
 import { parseMonitorFrames } from '../../src/replay/frames.js'
 import {
   SAMPLE_MODULE_SPECS,
@@ -37,13 +37,11 @@ import {
 
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const REPO_ROOT = join(__dirname, '../../..')
-const MODULES_DIR = join(REPO_ROOT, 'cmake-build-emscripten/examples/modules')
+const REPO_ROOT = join(__dirname, '../..')
+const MODULES_DIR = join(REPO_ROOT, 'extern/rpc-cpp/build-web/examples/modules')
 
 export const WAOSREC_BIN_CANDIDATES = [
-  join(REPO_ROOT, 'build/waosrec'),
-  join(REPO_ROOT, 'cmake-build-debug/waosrec'),
-  join(REPO_ROOT, 'cmake-build/waosrec'),
+  join(REPO_ROOT, 'extern/recorder-cpp/build/waosrec'),
 ]
 
 export async function resolveWaosrecBin(): Promise<string> {
@@ -56,7 +54,7 @@ export async function resolveWaosrecBin(): Promise<string> {
     }
   }
   throw new Error(
-    `waosrec not found; build with: cmake --build build --target waosrec (tried ${WAOSREC_BIN_CANDIDATES.join(', ')})`
+    `waosrec not found under extern/recorder-cpp/build (tried ${WAOSREC_BIN_CANDIDATES.join(', ')})`
   )
 }
 
@@ -71,7 +69,7 @@ export async function assertWasmExists(id: SampleModuleId): Promise<string> {
   } catch {
     throw new Error(
       `Missing ${path}. Build with:\n` +
-        `  cmake --build cmake-build-emscripten --target ${id}`
+        `  cmake --build extern/rpc-cpp/build-web --target ${id}`
     )
   }
   return path
@@ -452,17 +450,16 @@ export async function recordTopologyFixture(rootDir: string): Promise<{
     await tick(30)
 
     const peerId = 30
-    const { createGeneratedTypeRegistry } = await import('@wa-os/ts-kernel/src/kernelApi.js')
     const peer = new LocalProcess(ctx.kernel, peerId, 1_000_000)
     while (ctx.kernel.processes.length <= peerId) {
       ctx.kernel.processes.push(null)
     }
     ctx.kernel.processes[peerId] = peer
     peer.createSocket(0, SOCKET_OPTS)
-    peer.setRpcDescription(0, createGeneratedTypeRegistry().registry)
+    peer.setRpcDescription(0, kernelApi.createGeneratedTypeRegistry().registry)
     await registerWithShield(ctx, peerId)
 
-    await ctx.kernel.bind(TARGET_ID, 0, peerId, 0, Direction.BOTH)
+    await ctx.kernel.bind(TARGET_ID, 0, peerId, 0, kernelApi.direction.BOTH)
     await tick(100)
 
     await ctx.userClient.call(ctx.methodId('dump_and_clear'), result.recording_id)

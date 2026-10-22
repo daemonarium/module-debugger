@@ -1,4 +1,4 @@
-import { TypeKind, type TypeDescription } from '@wa-os/ts-rpc'
+import { TypeKind, type TypeDescription } from '@daemonarium/rpc'
 
 export function formatTypeShort(type: TypeDescription | undefined | null): string {
   if (!type) return 'unknown'

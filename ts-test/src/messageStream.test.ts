@@ -15,8 +15,8 @@ import {
   type DecodedFrame,
   type BindingsSnapshotView,
 } from '../../src/replay/index.js'
-import { direction } from '@wa-os/ts-kernel/src/kernelApi.js'
-import { SerializationFormat } from '@wa-os/ts-rpc'
+import { kernelApi } from '@daemonarium/kernel'
+import { SerializationFormat } from '@daemonarium/rpc'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const FIXTURE_REGISTRY = join(__dirname, '../../fixtures/waosrec.rpc_description.bin')
@@ -79,8 +79,8 @@ describe('messageStream', () => {
     const part2 = full.subarray(mid)
 
     const frames = [
-      copyFrame(0, direction.IN, part1),
-      copyFrame(0, direction.IN, part2),
+      copyFrame(0, kernelApi.direction.IN, part1),
+      copyFrame(0, kernelApi.direction.IN, part2),
     ]
     // Offsets differ when separately encoded — rebuild as logical stream only via payloads:
     // copyFrame re-encodes; payloads are part1/part2. Good.
@@ -102,7 +102,7 @@ describe('messageStream', () => {
     combined.set(a, 0)
     combined.set(b, a.length)
 
-    const frames = [copyFrame(1, direction.OUT, combined)]
+    const frames = [copyFrame(1, kernelApi.direction.OUT, combined)]
     const stream = buildMessageStream(frames, 5, emptyBindings(), new Map())
     const complete = stream.filter((m) => !m.incomplete)
     expect(complete).to.have.length(2)
@@ -114,7 +114,7 @@ describe('messageStream', () => {
   })
 
   it('emits incomplete tail when length prefix cannot be satisfied', () => {
-    const frames = [copyFrame(0, direction.IN, new Uint8Array([0x10, 0x00, 0x00]))]
+    const frames = [copyFrame(0, kernelApi.direction.IN, new Uint8Array([0x10, 0x00, 0x00]))]
     const stream = buildMessageStream(frames, 5, emptyBindings(), new Map())
     expect(stream).to.have.length(1)
     expect(stream[0]!.incomplete).to.equal(true)
@@ -150,8 +150,8 @@ describe('messageStream', () => {
     const a = framedRpc(new Uint8Array([1]))
     const b = framedRpc(new Uint8Array([2]))
     const frames = [
-      copyFrame(0, direction.IN, a),
-      copyFrame(0, direction.OUT, b),
+      copyFrame(0, kernelApi.direction.IN, a),
+      copyFrame(0, kernelApi.direction.OUT, b),
     ]
     const stream = buildMessageStream(frames, 5, emptyBindings(), new Map())
     const complete = stream.filter((m) => !m.incomplete)

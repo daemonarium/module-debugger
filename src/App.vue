@@ -41,7 +41,7 @@
     type RecordingDump,
   } from './replay/browser'
 
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && defaultHighlightStyle.module) {
     StyleModule.mount(window.document, defaultHighlightStyle.module)
   }
 

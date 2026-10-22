@@ -1,4 +1,4 @@
-import { direction } from '@wa-os/ts-kernel/src/kernelApi.js'
+import { kernelApi } from '@daemonarium/kernel'
 
 export interface SessionMetaView {
   name: string
@@ -71,9 +71,9 @@ export function num(v: unknown): number {
 }
 
 export function isDirectionIn(dir: unknown): boolean {
-  return num(dir) === direction.IN
+  return num(dir) === kernelApi.direction.IN
 }
 
 export function isDirectionOut(dir: unknown): boolean {
-  return num(dir) === direction.OUT
+  return num(dir) === kernelApi.direction.OUT
 }

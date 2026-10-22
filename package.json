@@ -1,7 +1,8 @@
 {
-  "name": "@wa-os/module-debugger",
+  "name": "@daemonarium/module-debugger",
   "version": "0.1.0",
   "private": true,
+  "author": "Magowie Sp. z o.o.",
   "type": "module",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
@@ -12,7 +13,7 @@
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build",
-    "test": "npm test -w @wa-os/module-debugger-tests",
+    "test": "npm test --prefix ts-test",
     "generate:recordings": "tsx scripts/generate-recordings.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
@@ -25,8 +26,8 @@
     "tailwindcss": "4.1.0",
     "tailwindcss-primeui": "^0.4.0",
     "vue": "^3.5.22",
-    "@wa-os/ts-rpc": "0.1.0",
-    "@wa-os/ts-kernel": "0.1.0",
+    "@daemonarium/rpc": "0.1.0",
+    "@daemonarium/kernel": "0.1.0",
     "@lezer/highlight": "^1.1.0",
     "@lezer/cpp": "^1.0.0",
     "@lezer/javascript": "^1.0.0",

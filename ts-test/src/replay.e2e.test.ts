@@ -11,7 +11,7 @@ import {
   tick,
   STORE_ID,
   TARGET_ID,
-} from '../../../recorder/ts-test/src/setup.js'
+} from '../../extern/recorder-cpp/ts-test/src/setup.ts'
 import {
   loadSessionDir,
   loadWaosrec,
@@ -26,7 +26,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const FIXTURE_REGISTRY = join(__dirname, '../../fixtures/waosrec.rpc_description.bin')
 const MOCK_MODULE_WASM = join(
   __dirname,
-  '../../../cmake-build-emscripten/kernel-shield/cpp-test/mock-module.wasm'
+  '../../extern/kernel-shield-cpp/build-web/kernel-shield/cpp-test/mock-module.wasm'
 )
 
 describe('ReplayRuntime headless', () => {

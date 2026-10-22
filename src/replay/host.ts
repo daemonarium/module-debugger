@@ -1,7 +1,7 @@
 import {
   ModuleSockets,
-  type ModuleSocket,
-} from '@wa-os/ts-rpc'
+  ModuleSocket,
+} from '@daemonarium/rpc'
 import { ReplayError } from './types.js'
 
 export type FlushHandler = (socket: number, bytes: Uint8Array) => void
@@ -84,7 +84,7 @@ export class ReplayHost {
     manaLimit: number,
     onFlush: FlushHandler
   ): Promise<ReplayHost> {
-    const wasmModule = await WebAssembly.compile(code)
+    const wasmModule = await WebAssembly.compile(code as unknown as BufferSource)
     const requiredPages = Math.max(1, Math.ceil(memorySnapshot.length / 65536))
     const maxPages = Math.max(requiredPages, 2048)
     const memory = new WebAssembly.Memory({ initial: requiredPages, maximum: maxPages })
@@ -137,7 +137,9 @@ export class ReplayHost {
   }
 
   getSocket(socket: number): ModuleSocket | undefined {
-    return this.moduleSockets?.getSocket(socket)
+    const sock = this.moduleSockets?.getSocket(socket)
+    if (sock instanceof ModuleSocket) return sock
+    return undefined
   }
 
   writeInput(socket: number, payload: Uint8Array): void {

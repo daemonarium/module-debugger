@@ -1,6 +1,6 @@
 import fsp from 'node:fs/promises'
 import { join } from 'node:path'
-import type { TypeRegistry } from '@wa-os/ts-rpc'
+import type { TypeRegistry } from '@daemonarium/rpc'
 import type { RecordingDump } from './types.js'
 import {
   buildDumpFromSessionFiles,

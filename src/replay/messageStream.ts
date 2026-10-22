@@ -6,7 +6,7 @@ import {
   ensureRpcTypesInRegistry,
   registerDynamicCodecs,
   registerMessageCodecs
-} from '@wa-os/ts-rpc'
+} from '@daemonarium/rpc'
 import type {
   BindingsSnapshotView,
   DecodedFrame,

@@ -4,11 +4,10 @@ Product and contract spec for debugging WASM processes from **recorder / debug-s
 
 Related:
 
-- Kernel recording model: [`ts-kernel/README.md`](../ts-kernel/README.md) — *Process recording and replay*
-- Recorder design: [`recorder/DESIGN.md`](../recorder/DESIGN.md)
-- Debug-store layout: [`debug-store/README.md`](../debug-store/README.md)
+- Kernel recording model: [kernel-ts](https://github.com/daemonarium/kernel-ts/blob/v0.1.0/README.md)
+- Recorder design: [recorder-cpp DESIGN.md](https://github.com/daemonarium/recorder-cpp/blob/v0.1.0/DESIGN.md)
+- Debug-store layout: [debug-store-cpp](https://github.com/daemonarium/debug-store-cpp/blob/v0.1.0/README.md)
 - Implementation checklist: [`TODO.md`](./TODO.md)
-- Release gate: [`TESTING.md`](../TESTING.md) → `npm run gate`
 
 Status: **core shipped** — packer (`.waosrec`), headless `ReplayRuntime` under [`src/replay/`](./src/replay/), Recording UI (Events / Messages / API / Environment), Playwright e2e, fixtures including `dbg_token` / `dbg_cclient` / `dbg_mixed`. Checklist: [`TODO.md`](./TODO.md) (§1–§16). Interactive UI remains in the repo but is **not mounted** in the app shell.
 
@@ -48,7 +47,7 @@ Default product focus is **Recording**.
 
 ## 3. Replay semantics
 
-Aligned with [`ts-kernel/README.md`](../ts-kernel/README.md) *Debug replay model*, plus topology metadata.
+Aligned with [kernel-ts](https://github.com/daemonarium/kernel-ts/blob/v0.1.0/README.md), plus topology metadata.
 
 Replay runs an **isolated** WASM instance: no kernel, no peer processes, no real binds. Recorded socket I/O replaces the external world.
 
@@ -84,7 +83,7 @@ Inferring bind/unbind only from I/O on the target’s kernel-API socket is **inc
 - Mid-session binds change which peer registry is needed for decode.
 - A snapshot of bindings at `start_recording` alone misses later graph changes.
 
-The claim in older kernel docs that bind/unbind need no separate monitor types is **outdated**; recording uses dedicated BIND events (see §6). Documented in [`ts-kernel/README.md`](../ts-kernel/README.md).
+The claim in older kernel docs that bind/unbind need no separate monitor types is **outdated**; recording uses dedicated BIND events (see §6). Documented in [kernel-ts](https://github.com/daemonarium/kernel-ts/blob/v0.1.0/README.md).
 
 ---
 
@@ -107,7 +106,7 @@ Length-prefixed sections (or equivalent TLV/CBOR). Logical contents:
 
 ### Mapping from debug-store session
 
-Today ([`debug-store/README.md`](../debug-store/README.md)):
+Today ([debug-store-cpp](https://github.com/daemonarium/debug-store-cpp/blob/v0.1.0/README.md)):
 
 ```text
 sessions/<id>/meta.bin
@@ -131,7 +130,7 @@ Serialized `bindings_snapshot`:
 ### Registry blobs
 
 - File name: `registry.<process_id>.<socket_id>.bin`
-- Payload: `rpc_description` bytes — `[envelope u8][compressed TypeRegistry body]` (see [cpp-rpc/type-registry-blob.md](../cpp-rpc/type-registry-blob.md)). Envelope nibble = **socket data format** for Copy payloads on that endpoint: compressed / flat / key. Legacy blobs without bit7 → treat as compressed.
+- Payload: `rpc_description` bytes — `[envelope u8][compressed TypeRegistry body]` (see [rpc-cpp type-registry-blob.md](https://github.com/daemonarium/rpc-cpp/blob/v0.1.0/docs/type-registry-blob.md)). Envelope nibble = **socket data format** for Copy payloads on that endpoint: compressed / flat / key. Legacy blobs without bit7 → treat as compressed.
 - Empty file or missing file → `registry_status: missing` for that key; do not fail the whole session
 - Written at start for target sockets + peers; **updated/added** when a `process_bind_event` introduces a new peer (see §7)
 
@@ -242,7 +241,7 @@ process_unbind_event {
 }
 ```
 
-Implemented in: [`cpp-rpc/src/examples/structures/kernel.hpp`](../cpp-rpc/src/examples/structures/kernel.hpp), [`ts-kernel/src/kernelApi.ts`](../ts-kernel/src/kernelApi.ts), [`ts-kernel/src/ProcessMonitorEmitter.ts`](../ts-kernel/src/ProcessMonitorEmitter.ts).
+Implemented in: [rpc-cpp kernel.hpp](https://github.com/daemonarium/rpc-cpp/blob/v0.1.0/src/examples/structures/kernel.hpp), [kernel-ts kernelApi.ts](https://github.com/daemonarium/kernel-ts/blob/v0.1.0/src/kernelApi.ts), [kernel-ts ProcessMonitorEmitter.ts](https://github.com/daemonarium/kernel-ts/blob/v0.1.0/src/ProcessMonitorEmitter.ts).
 
 **Emit rules:**
 
@@ -296,7 +295,7 @@ debug_code_event { reserved }
 
 ### 6.5 Recorder capture
 
-After the first complete save anchor in `start_recording` ([`recorder/src/recording.cpp`](../recorder/src/recording.cpp)):
+After the first complete save anchor in `start_recording` ([recorder-cpp recording.cpp](https://github.com/daemonarium/recorder-cpp/blob/v0.1.0/src/recording.cpp)):
 
 1. Monitor config includes `BIND`.
 2. `list_socket_bindings(target)` → `debug_bindings_event` + `bindings_snapshot` bytes.

@@ -2,8 +2,6 @@
 
 Checklist for the recording debugger track. Spec: [`RECORDING_DEBUGGER.md`](./RECORDING_DEBUGGER.md).
 
-Local release gate: [`../TESTING.md`](../TESTING.md) → `npm run gate`.
-
 Mark items `[x]` only when the **done** criterion is met.
 
 ---
@@ -19,12 +17,12 @@ Mark items `[x]` only when the **done** criterion is met.
 
 ## 2. Kernel monitor BIND
 
-- [x] Add `monitor_flag.BIND = 1 << 13` in [`kernel.hpp`](../cpp-rpc/src/examples/structures/kernel.hpp) and [`kernelApi.ts`](../ts-kernel/src/kernelApi.ts)
+- [x] Add `monitor_flag.BIND = 1 << 13` in [rpc-cpp kernel.hpp](https://github.com/daemonarium/rpc-cpp/blob/v0.1.0/src/examples/structures/kernel.hpp) and [kernel-ts kernelApi.ts](https://github.com/daemonarium/kernel-ts/blob/v0.1.0/src/kernelApi.ts)
 - [x] Add `process_bind_event` / `process_unbind_event` message types (fields: `socket`, `peer_process`, `peer_socket`, `direction`)
 - [x] Emit from `kernel.bind` / `unbind` to monitors of **both** sides when `BIND` is set; before first related `Copy`
-- [x] Wire through [`ProcessMonitorEmitter.ts`](../ts-kernel/src/ProcessMonitorEmitter.ts) (+ any pump/bind call sites)
+- [x] Wire through [kernel-ts ProcessMonitorEmitter.ts](https://github.com/daemonarium/kernel-ts/blob/v0.1.0/src/ProcessMonitorEmitter.ts) (+ any pump/bind call sites)
 - [x] Unit tests: host bind while monitored → bind event on monitor socket; unbind → unbind event
-- [x] Update [`ts-kernel/README.md`](../ts-kernel/README.md): remove outdated “bind needs no separate events”; document `BIND` and event table; add `BIND` to `RECORDING` preset
+- [x] Update [kernel-ts README](https://github.com/daemonarium/kernel-ts/blob/v0.1.0/README.md): remove outdated “bind needs no separate events”; document `BIND` and event table; add `BIND` to `RECORDING` preset
 
 **Done when:** tests pass and README matches the emit contract in the spec.
 
@@ -45,7 +43,7 @@ Mark items `[x]` only when the **done** criterion is met.
 
 ## 4. Kernel-shield pass-through
 
-- [x] Expose `list_socket_bindings` and `get_rpc_description` on shield RPC ([`kernel_rpc.hpp`](../kernel-shield/src/kernel_rpc.hpp), API, registration)
+- [x] Expose `list_socket_bindings` and `get_rpc_description` on shield RPC ([kernel-shield-cpp kernel_rpc.hpp](https://github.com/daemonarium/kernel-shield-cpp/blob/v0.1.0/src/kernel_rpc.hpp), API, registration)
 - [x] README + ts-test: calls reach kernel mock / real kernel
 
 **Done when:** shield ts-test asserts both methods.
@@ -64,7 +62,7 @@ Mark items `[x]` only when the **done** criterion is met.
 
 ## 6. Recorder capture + BIND refresh
 
-- [x] Include `BIND` in monitor flags used for recording ([`DESIGN.md`](../recorder/DESIGN.md) + implementation)
+- [x] Include `BIND` in monitor flags used for recording ([recorder-cpp DESIGN.md](https://github.com/daemonarium/recorder-cpp/blob/v0.1.0/DESIGN.md) + implementation)
 - [x] After first complete save anchor: `list_socket_bindings` + `get_rpc_description` → `debug_bindings_event` / `debug_registry_event`
 - [x] On `process_bind_event` / `process_unbind_event`: keep opaque frame in `io_bytes`; refresh peer registry via `debug_registry_event` on bind
 - [x] Synthetic and/or e2e: files present after start; mid-session host bind → event in `io.bin` + new registry file
@@ -126,7 +124,7 @@ Mark items `[x]` only when the **done** criterion is met.
 - [x] **Content fidelity** R80–R87: oracle from dump ↔ UI timeline/hex/exact expect-matches (+ echo golden payloads)
 - [x] App shell + Environment tab e2e (no mode-select; `tab-environment` / `environment-*`)
 
-**Done when:** `npm run test:e2e -w @wa-os/module-debugger` is green locally with generated `.waosrec` fixtures.
+**Done when:** `npm run test:e2e` is green locally with generated `.waosrec` fixtures.
 
 ---
 

@@ -11,7 +11,7 @@ import {
   SerializationFormat,
   serializeTypeRegistry,
   packSerializationFormatEnvelope,
-} from '@wa-os/ts-rpc'
+} from '@daemonarium/rpc'
 import {
   decodeSocketPayload,
   resolveRegistryBytes,

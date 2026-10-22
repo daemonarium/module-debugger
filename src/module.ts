@@ -1,4 +1,4 @@
-import { TypeRegistry, deserializeTypeRegistry, ModuleSockets } from '@wa-os/ts-rpc';
+import { TypeRegistry, deserializeTypeRegistry, ModuleSockets } from '@daemonarium/rpc';
 
 export class Module {
 

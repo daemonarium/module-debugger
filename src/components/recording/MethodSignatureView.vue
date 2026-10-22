@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { TypeDescription, TypeRegistry } from '@wa-os/ts-rpc'
-import { TypeKind } from '@wa-os/ts-rpc'
+import type { TypeDescription, TypeRegistry } from '@daemonarium/rpc'
+import { TypeKind } from '@daemonarium/rpc'
 import TypeViewer from '../TypeViewer.vue'
 import { shouldShowOwnerChip } from './ownerChip.js'
 import { formatPreviewValue } from '../../replay/browser'

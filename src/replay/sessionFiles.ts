@@ -7,7 +7,7 @@ import {
   ensureRpcCodecs,
   registerDynamicCodecs,
   type TypeRegistry,
-} from '@wa-os/ts-rpc'
+} from '@daemonarium/rpc'
 import {
   type BindingsSnapshotView,
   type RecordingDump,
@@ -109,6 +109,9 @@ export function buildDumpFromSessionFiles(
   }
   snapMetas.sort((a, b) => b.uid - a.uid)
   const best = snapMetas[0]
+  if (!best) {
+    throw new Error('no snap.<uid>.meta.bin in session files')
+  }
 
   const sessionRaw = deserializeTypedBytes(
     typeRegistry,

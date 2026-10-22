@@ -24,8 +24,8 @@
 
 <script setup lang="ts">
   import DataView from './DataView.vue'
-  import type { TypeRegistry } from '@wa-os/ts-rpc'
-  import type { RpcMessage } from '@wa-os/ts-rpc'
+  import type { TypeRegistry } from '@daemonarium/rpc'
+  import type { RpcMessage } from '@daemonarium/rpc'
 
   const props = defineProps<{
     messages: RpcMessage[]

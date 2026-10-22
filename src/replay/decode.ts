@@ -10,7 +10,7 @@ import {
   registerMessageCodecs,
   SerializationFormat,
   tryUnpackSerializationFormatEnvelope,
-} from '@wa-os/ts-rpc'
+} from '@daemonarium/rpc'
 import type { TopologyBinding } from './types.js'
 import { registryKey } from './types.js'
 import { loadTypeRegistryFromBytes } from './sessionFiles.js'

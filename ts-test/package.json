@@ -1,16 +1,18 @@
 {
-  "name": "@wa-os/module-debugger-tests",
+  "name": "module-debugger-tests",
   "version": "0.1.0",
+  "private": true,
   "description": "Mocha tests for ReplayRuntime / module-debugger recording track",
   "type": "module",
   "scripts": {
-    "test": "tsx ../../node_modules/mocha/bin/mocha.js --timeout 300000 'src/**/*.test.ts'",
-    "test:watch": "tsx ../../node_modules/mocha/bin/mocha.js --watch --timeout 300000 'src/**/*.test.ts'"
+    "test": "tsx node_modules/.bin/mocha --timeout 300000 --ignore 'src/fixtures.generate.test.ts' --ignore 'src/replay.e2e.test.ts' 'src/**/*.test.ts'",
+    "test:stack": "tsx node_modules/.bin/mocha --timeout 300000 src/fixtures.generate.test.ts src/replay.e2e.test.ts",
+    "test:watch": "tsx node_modules/.bin/mocha --watch --timeout 300000 --ignore 'src/fixtures.generate.test.ts' --ignore 'src/replay.e2e.test.ts' 'src/**/*.test.ts'"
   },
   "dependencies": {
-    "@wa-os/ts-fs": "0.1.0",
-    "@wa-os/ts-kernel": "0.1.0",
-    "@wa-os/ts-rpc": "0.1.0"
+    "@daemonarium/fs": "0.1.0",
+    "@daemonarium/kernel": "0.1.0",
+    "@daemonarium/rpc": "0.1.0"
   },
   "devDependencies": {
     "@types/chai": "^4.3.11",

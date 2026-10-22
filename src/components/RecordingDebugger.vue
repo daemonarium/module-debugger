@@ -249,7 +249,7 @@
   const selectedFrame = computed(() => {
     const frames = props.runtime.frames
     if (selectedIndex.value < 0 || selectedIndex.value >= frames.length) return null
-    return frames[selectedIndex.value]
+    return frames[selectedIndex.value] ?? null
   })
   const frameReplayError = computed(() => {
     tick.value

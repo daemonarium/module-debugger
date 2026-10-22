@@ -139,8 +139,8 @@
   import MessagesView from './MessagesView.vue'
   import Dialog from 'primevue/dialog'
   import { Module } from '../module'
-  import { TypeKind, RpcDebugger, RawRpcClient, CodecRegistry, registerDynamicCodecs, type RpcMessage, Writer, Reader } from '@wa-os/ts-rpc'
-  import type { TypeDescription, TypeMember, TypedValue, RegisteredMethod } from '@wa-os/ts-rpc'
+  import { TypeKind, RpcDebugger, RawRpcClient, CodecRegistry, registerDynamicCodecs, type RpcMessage, Writer, Reader } from '@daemonarium/rpc'
+  import type { TypeDescription, TypeMember, TypedValue, RegisteredMethod } from '@daemonarium/rpc'
 
   const props = defineProps<{
     module: Module

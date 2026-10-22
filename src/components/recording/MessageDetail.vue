@@ -204,7 +204,7 @@
   import type { EnrichedStreamMessage } from '../../replay/browser'
   import { colorForRequestId } from './requestIdColor.js'
   import { shouldShowOwnerChip } from './ownerChip.js'
-  import type { TypeRegistry } from '@wa-os/ts-rpc'
+  import type { TypeRegistry } from '@daemonarium/rpc'
   import { loadTypeRegistryFromBytes } from '../../replay/sessionFiles.js'
 
   const props = defineProps<{

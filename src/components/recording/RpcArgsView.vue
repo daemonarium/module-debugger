@@ -17,7 +17,7 @@
 <script setup lang="ts">
   import ValueTreeViewer from '../ValueTreeViewer.vue'
   import type { RpcEnrichment } from '../../replay/browser'
-  import type { TypeRegistry } from '@wa-os/ts-rpc'
+  import type { TypeRegistry } from '@daemonarium/rpc'
 
   defineProps<{
     rpc: RpcEnrichment

@@ -11,7 +11,7 @@ import {
   type TypeDescription,
   registerMessageCodecs,
   deserializeValueByType
-} from '@wa-os/ts-rpc'
+} from '@daemonarium/rpc'
 import type { StreamMessage } from './messageStream.js'
 import { loadTypeRegistryFromBytes } from './sessionFiles.js'
 

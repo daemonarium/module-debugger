@@ -63,7 +63,7 @@
   import { useToast } from 'primevue/usetoast'
   import CodeHighlighter from './CodeHighlighter.vue'
   import { Module } from '../module'
-  import { glueCodeGenerators } from '@wa-os/ts-rpc'
+  import { glueCodeGenerators } from '@daemonarium/rpc'
 
   const props = defineProps<{
     module: Module

@@ -1,6 +1,6 @@
 import { expect } from 'chai'
-import { SerializationFormat } from '@wa-os/ts-rpc'
-import { direction } from '@wa-os/ts-kernel/src/kernelApi.js'
+import { SerializationFormat } from '@daemonarium/rpc'
+import { kernelApi } from '@daemonarium/kernel'
 import {
   encodeMonitorFrame,
   parseMonitorFrames,
@@ -16,7 +16,7 @@ describe('parseMonitorFrames', () => {
         _type: 'process_copy_event',
         process: 5,
         socket: 0,
-        direction: direction.IN,
+        direction: kernelApi.direction.IN,
         amount: payload.length,
       },
       payload
@@ -25,7 +25,7 @@ describe('parseMonitorFrames', () => {
       _type: 'process_data_event',
       process: 5,
       socket: 0,
-      direction: direction.IN,
+      direction: kernelApi.direction.IN,
     })
     const events = new Uint8Array(copy.length + data.length)
     events.set(copy, 0)
@@ -48,7 +48,7 @@ describe('parseMonitorFrames', () => {
         _type: 'process_copy_event',
         process: 5,
         socket: 0,
-        direction: direction.IN,
+        direction: kernelApi.direction.IN,
         amount: payload.length,
       },
       payload
@@ -63,7 +63,7 @@ describe('parseMonitorFrames', () => {
 
   it('classifies Copy OUT as expect and bind as topology', () => {
     expect(
-      classifyFrame('process_copy_event', { direction: direction.OUT })
+      classifyFrame('process_copy_event', { direction: kernelApi.direction.OUT })
     ).to.equal('expect')
     expect(classifyFrame('process_bind_event', {})).to.equal('topology')
     expect(classifyFrame('process_error_event', {})).to.equal('anchor')

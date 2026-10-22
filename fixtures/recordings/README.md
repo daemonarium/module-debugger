@@ -4,19 +4,12 @@ Generated `.waosrec` dumps for exercising the Recording UI (timeline, scrubber, 
 
 ## Prerequisites
 
-```bash
-# From repo root
-cmake -S . -B cmake-build-emscripten -DWASM=ON   # once
-cmake --build cmake-build-emscripten --target \
-  dbg_echo dbg_hello dbg_counter dbg_kv dbg_stats dbg_shop dbg_token \
-  dbg_cpeer dbg_cclient dbg_mixed
-cmake --build cmake-build-debug --target waosrec   # or build/ if that’s your tree
-```
+Check out `extern/rpc-cpp`, `extern/recorder-cpp`, `extern/kernel-shield-cpp`, and `extern/debug-store-cpp` at `v0.1.0` and build them. Sample modules land in `extern/rpc-cpp/build-web/examples/modules`. `waosrec` lands in `extern/recorder-cpp/build/waosrec`.
 
 ## Generate
 
 ```bash
-npm run generate:recordings -w @wa-os/module-debugger
+npm run generate:recordings
 ```
 
 Harness ends each session with recorder **`dump_and_clear`** (persist then clear the I/O window) so a later `dump_on_error` cannot append a duplicate window. All generate paths use `dump_and_clear`.
@@ -32,17 +25,15 @@ Writes:
 
 ```bash
 npx playwright install chromium
-npm run test:e2e -w @wa-os/module-debugger
+npm run test:e2e
 ```
 
-`playwright.config` serves **`vite preview`** (not `vite dev`) to avoid ENOSPC from recursive `fs.watch` in the monorepo. `globalSetup` can refresh topology / bad-echo / session-echo caches when missing.
-
-Release gate (includes mocha + e2e): [`TESTING.md`](../../../TESTING.md) → `npm run gate`.
+`playwright.config` serves **`vite preview`** (not `vite dev`). `globalSetup` can refresh topology / bad-echo / session-echo caches when missing.
 
 ## Open in UI
 
 ```bash
-npm run dev -w @wa-os/module-debugger
+npm run dev
 ```
 
 Manual UI: `dev`. Playwright e2e: **`vite preview`** (via `playwright.config` webServer). Upload a `.waosrec` from this folder (Recording mode is the default). Default tab is **Messages**; use **Events** for the frame timeline.

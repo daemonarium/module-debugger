@@ -104,8 +104,8 @@
   import { ref, computed } from 'vue'
   import Button from 'primevue/button'
   import Tag from 'primevue/tag'
-  import type { TypeDescription, TypeRegistry, TypedValue } from '@wa-os/ts-rpc'
-  import { TypeKind } from '@wa-os/ts-rpc'
+  import type { TypeDescription, TypeRegistry, TypedValue } from '@daemonarium/rpc'
+  import { TypeKind } from '@daemonarium/rpc'
   import { formatTypeShort } from './recording/formatTypeShort.js'
 
   const props = withDefaults(defineProps<{

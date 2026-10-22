@@ -4,7 +4,7 @@ import {
   TypeRegistry,
   SerializationFormat,
   ensureRpcTypesInRegistry,
-} from '@wa-os/ts-rpc'
+} from '@daemonarium/rpc'
 
 function requireType(registry: TypeRegistry, name: string): TypeDescription {
   const t = registry.getTypeByName(name)

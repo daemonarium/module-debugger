@@ -3,11 +3,10 @@
  * Generate module-debugger/fixtures/recordings/*.waosrec for all dbg_* samples
  * plus dbg_topology, dbg_token, dbg_cclient (compressed↔compressed), dbg_mixed.
  *
- * Prerequisites:
- *   cmake --build cmake-build-emscripten --target \
- *     dbg_echo dbg_hello dbg_counter dbg_kv dbg_stats dbg_shop dbg_token \
- *     dbg_cpeer dbg_cclient dbg_mixed
- *   cmake --build build --target waosrec   # or cmake-build-debug
+ * Prerequisites: extern/rpc-cpp, extern/recorder-cpp, extern/kernel-shield-cpp,
+ * and extern/debug-store-cpp built at v0.1.0. Sample wasm is under
+ * extern/rpc-cpp/build-web/examples/modules. waosrec is
+ * extern/recorder-cpp/build/waosrec.
  */
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'

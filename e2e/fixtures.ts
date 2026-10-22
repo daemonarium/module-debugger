@@ -10,7 +10,7 @@ export const SESSION_ECHO_DIR = join(CACHE_DIR, 'session-echo')
 export const BAD_ECHO_PATH = join(CACHE_DIR, 'bad-echo.waosrec')
 export const DBG_ECHO_WASM = join(
   __dirname,
-  '../../cmake-build-emscripten/examples/modules/dbg_echo.wasm'
+  '../extern/rpc-cpp/build-web/examples/modules/dbg_echo.wasm'
 )
 
 export interface ManifestFixture {
@@ -46,7 +46,7 @@ export function requireWaosrec(id: string): string {
   const path = waosrecPath(id)
   if (!existsSync(path)) {
     throw new Error(
-      `Missing ${path}. Run: npm run generate:recordings -w @wa-os/module-debugger`
+      `Missing ${path}. Run: npm run generate:recordings`
     )
   }
   return path

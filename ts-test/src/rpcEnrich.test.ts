@@ -11,8 +11,8 @@ import {
   RPC_RESPONSE_TYPE,
   TypeKind,
   type RegisteredMethod,
-} from '@wa-os/ts-rpc'
-import { serializeTypeRegistry, serializeValueByType, registerMessageCodecs } from '@wa-os/ts-rpc'
+} from '@daemonarium/rpc'
+import { serializeTypeRegistry, serializeValueByType, registerMessageCodecs } from '@daemonarium/rpc'
 import { enrichRpcMessages, findPairedMessage } from '../../src/replay/rpcEnrich.js'
 import { buildMessageStream } from '../../src/replay/messageStream.js'
 import type { StreamMessage, MessageByteSpan } from '../../src/replay/messageStream.js'

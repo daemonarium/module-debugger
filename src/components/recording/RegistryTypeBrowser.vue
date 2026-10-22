@@ -139,7 +139,7 @@
   import Tag from 'primevue/tag'
   import TypeViewer from '../TypeViewer.vue'
   import MethodSignatureView from './MethodSignatureView.vue'
-  import { TypeKind, type TypeDescription, type TypeMember, type TypeRegistry } from '@wa-os/ts-rpc'
+  import { TypeKind, type TypeDescription, type TypeMember, type TypeRegistry } from '@daemonarium/rpc'
   import { loadTypeRegistryFromBytes } from '../../replay/sessionFiles.js'
 
   const props = withDefaults(

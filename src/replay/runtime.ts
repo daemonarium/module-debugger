@@ -9,7 +9,7 @@ import {
   num,
   registryKey,
 } from './types.js'
-import { SerializationFormat } from '@wa-os/ts-rpc'
+import { SerializationFormat } from '@daemonarium/rpc'
 
 export interface ReplayState {
   index: number
@@ -136,6 +136,10 @@ export class ReplayRuntime {
       return false
     }
     const frame = this.frames[this.state.index]
+    if (!frame) {
+      this.state.stopped = true
+      return false
+    }
     this.state.index += 1
     try {
       this.applyFrame(frame)
