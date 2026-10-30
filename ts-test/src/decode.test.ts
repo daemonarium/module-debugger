@@ -17,8 +17,8 @@ import {
   resolveRegistryBytes,
   resolveConnectionDataFormat,
   peekRegistryDataFormat,
-} from '../../src/replay/decode.js'
-import { registryKey } from '../../src/replay/types.js'
+} from '@daemonarium/replay'
+import { registryKey } from '@daemonarium/replay'
 
 const BUF_SIZE = 4096
 const SOCKET_OPTS = {

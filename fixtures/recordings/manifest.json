@@ -160,6 +160,23 @@
         "topology"
       ],
       "notes": "Mixed formats: flat host↔USER, compressed client↔dbg_cpeer"
+    },
+    {
+      "id": "dbg_fail",
+      "file": "dbg_fail.waosrec",
+      "title": "ok() then trap",
+      "complexity": 10,
+      "api": [
+        "ok",
+        "boom"
+      ],
+      "expects": [
+        "stimulus",
+        "expect",
+        "anchor"
+      ],
+      "notes": "ok() succeeds; boom() traps. Kernel handleData swallows the trap, so the dump has no process_error_event. Replay raises it.",
+      "replayFails": true
     }
   ]
 }

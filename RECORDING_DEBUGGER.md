@@ -9,7 +9,7 @@ Related:
 - Debug-store layout: [debug-store-cpp](https://github.com/daemonarium/debug-store-cpp/blob/v0.1.0/README.md)
 - Implementation checklist: [`TODO.md`](./TODO.md)
 
-Status: **core shipped** — packer (`.waosrec`), headless `ReplayRuntime` under [`src/replay/`](./src/replay/), Recording UI (Events / Messages / API / Environment), Playwright e2e, fixtures including `dbg_token` / `dbg_cclient` / `dbg_mixed`. Checklist: [`TODO.md`](./TODO.md) (§1–§16). Interactive UI remains in the repo but is **not mounted** in the app shell.
+Status: **core shipped** — packer (`.waosrec`), headless `ReplayRuntime` in [`@daemonarium/replay`](../replay/) (shims remain under [`src/replay/`](./src/replay/)), Recording UI (Events / Messages / API / Environment), Playwright e2e, fixtures including `dbg_token` / `dbg_cclient` / `dbg_mixed`. Checklist: [`TODO.md`](./TODO.md) (§1–§16). Interactive UI remains in the repo but is **not mounted** in the app shell.
 
 ---
 
@@ -149,7 +149,7 @@ Serialized `bindings_snapshot`:
 
 ## 5. ReplayRuntime (no kernel)
 
-Implemented in [`src/replay/`](./src/replay/):
+Implemented in [`@daemonarium/replay`](../replay/src/) (`module-debugger/src/replay/` re-exports it):
 
 | File | Role |
 |------|------|
@@ -323,7 +323,7 @@ Implemented under [`src/components/`](./src/components/):
 | Open dump | [`RecordingSource.vue`](./src/components/RecordingSource.vue) — `.waosrec` upload + session directory picker |
 | Workspace | [`RecordingDebugger.vue`](./src/components/RecordingDebugger.vue) — dump header, scrubber, flex tabs |
 | Timeline / messages / API / Environment | [`components/recording/`](./src/components/recording/) |
-| Browser-safe replay API | [`src/replay/browser.ts`](./src/replay/browser.ts) |
+| Browser-safe replay API | [`src/replay/browser.ts`](./src/replay/browser.ts) re-exports [`@daemonarium/replay/browser`](../replay/src/browser.ts) |
 
 Behaviour:
 

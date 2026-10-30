@@ -14,7 +14,7 @@ import {
   nextMessage,
   type DecodedFrame,
   type BindingsSnapshotView,
-} from '../../src/replay/index.js'
+} from '@daemonarium/replay'
 import { kernelApi } from '@daemonarium/kernel'
 import { SerializationFormat } from '@daemonarium/rpc'
 

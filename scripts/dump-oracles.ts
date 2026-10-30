@@ -11,7 +11,7 @@ import {
   loadWaosrec,
   loadTypeRegistryFromBytes,
   parseMonitorFrames,
-} from '../src/replay/index.js'
+} from '@daemonarium/replay'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const RECORDINGS_DIR = join(__dirname, '../fixtures/recordings')

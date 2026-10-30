@@ -17,6 +17,7 @@ export default defineConfig({
   ],
   optimizeDeps: {
     include: ['@daemonarium/rpc', '@daemonarium/kernel'],
+    exclude: ['@daemonarium/replay'],
   },
   build: {
 
@@ -25,6 +26,7 @@ export default defineConfig({
     noExternal: [
       '@daemonarium/rpc',
       '@daemonarium/kernel',
+      '@daemonarium/replay',
     ],
   },
   resolve: {

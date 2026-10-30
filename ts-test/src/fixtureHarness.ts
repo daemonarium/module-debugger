@@ -24,12 +24,13 @@ import {
   SOCKET_OPTS,
   type WasmTargetTestContext,
 } from '../../extern/recorder-cpp/ts-test/src/setup.ts'
-import { parseMonitorFrames } from '../../src/replay/frames.js'
+import { parseMonitorFrames } from '@daemonarium/replay'
 import {
   SAMPLE_MODULE_SPECS,
   DBG_TOKEN_SPEC,
   DBG_CCLIENT_SPEC,
   DBG_MIXED_SPEC,
+  DBG_FAIL_SPEC,
   buildDbgCpeerRegistry,
   type SampleModuleId,
   type SampleModuleSpec,
@@ -199,6 +200,16 @@ export async function driveSample(
       await call('balanceOf', 'alice')
       break
     }
+    case 'dbg_fail': {
+      await call('ok')
+      // boom() traps. ModuleProcess.handleData swallows that, so the RPC
+      // response never arrives. Don't wait forever.
+      await Promise.race([
+        call('boom').then(() => undefined, () => undefined),
+        new Promise<void>((resolve) => setTimeout(resolve, 1500)),
+      ])
+      break
+    }
     default:
       throw new Error(`unknown sample ${spec.id}`)
   }
@@ -253,6 +264,71 @@ export async function recordSampleFixture(
     // trigger dump_on_error (second append of the same io window).
     await ctx.kernel.kill(TARGET_ID)
     await tick(80)
+
+    const storeSessionId = num(result.store_session_id)
+    const sessionDir = join(rootDir, 'sessions', String(storeSessionId))
+    await injectTargetRegistry(sessionDir, ctx.targetRegistry)
+    await preferEarliestSnapshot(sessionDir)
+
+    return {
+      id: spec.id,
+      sessionDir,
+      storeSessionId,
+      recordingId: result.recording_id,
+      registry: ctx.targetRegistry,
+      spec,
+    }
+  } finally {
+    await ctx.cleanup()
+  }
+}
+
+/**
+ * Record dbg_fail: ok() then boom().
+ * dump_on_error does not fire, because the kernel does not emit
+ * process_error_event for a trap inside handleData. Persist with
+ * dump_and_clear while the process is still alive.
+ */
+export async function recordFailFixture(rootDir: string): Promise<RecordedFixture> {
+  const spec = DBG_FAIL_SPEC
+  const wasmPath = await assertWasmExists(spec.id)
+  const ctx = await setupWasmTargetEnvironment(rootDir, {
+    targetWasmPath: wasmPath,
+    buildTargetRegistry: spec.buildRegistry,
+  })
+  try {
+    await tick(20)
+
+    const moduleCode = await readFile(wasmPath)
+    const result = (await ctx.userClient.call(ctx.methodId('start_recording'), {
+      target_process: BigInt(TARGET_ID),
+      store_process: BigInt(STORE_ID),
+      session_name: `fixture-${spec.id}`,
+      labels: {
+        sample: spec.id,
+        complexity: String(spec.complexity),
+      },
+      config: {
+        event_buffer_snapshot_mult: 2,
+        record_mana: false,
+        dump_on_error: true,
+      },
+      code: moduleCode,
+    })) as Record<string, unknown>
+
+    await tick(30)
+    await driveSample(ctx, spec)
+    await tick(80)
+
+    await ctx.userClient.call(ctx.methodId('dump_and_clear'), result.recording_id)
+    await tick(80)
+
+    try {
+      await ctx.kernel.kill(TARGET_ID)
+    } catch {
+      // The trap may already have left the instance unusable.
+    }
+    await tick(40)
 
     const storeSessionId = num(result.store_session_id)
     const sessionDir = join(rootDir, 'sessions', String(storeSessionId))
@@ -517,6 +593,7 @@ export {
   DBG_TOKEN_SPEC,
   DBG_CCLIENT_SPEC,
   DBG_MIXED_SPEC,
+  DBG_FAIL_SPEC,
   withTempRoot,
   tick,
 }

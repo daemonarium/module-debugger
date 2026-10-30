@@ -7,7 +7,7 @@ import {
   ReplayRuntime,
   ReplayError,
   parseMonitorFrames,
-} from '../../src/replay/index.js'
+} from '@daemonarium/replay'
 import {
   SAMPLE_MODULE_SPECS,
   DBG_TOKEN_SPEC,

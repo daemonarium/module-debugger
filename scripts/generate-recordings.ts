@@ -1,7 +1,8 @@
 #!/usr/bin/env npx tsx
 /**
  * Generate module-debugger/fixtures/recordings/*.waosrec for all dbg_* samples
- * plus dbg_topology, dbg_token, dbg_cclient (compressed↔compressed), dbg_mixed.
+ * plus dbg_topology, dbg_token, dbg_cclient (compressed↔compressed), dbg_mixed,
+ * dbg_fail (ok then trap).
  *
  * Prerequisites: extern/rpc-cpp, extern/recorder-cpp, extern/kernel-shield-cpp,
  * and extern/debug-store-cpp built at v0.1.0. Sample wasm is under
@@ -16,11 +17,13 @@ import {
   DBG_TOKEN_SPEC,
   DBG_CCLIENT_SPEC,
   DBG_MIXED_SPEC,
+  DBG_FAIL_SPEC,
   recordSampleFixture,
   recordTopologyFixture,
   recordTokenKvFixture,
   recordCompClientFixture,
   recordMixedFixture,
+  recordFailFixture,
   packSession,
   withTempRoot,
   resolveWaosrecBin,
@@ -124,6 +127,25 @@ async function main() {
       api: DBG_MIXED_SPEC.api,
       expects: DBG_MIXED_SPEC.expects,
       notes: DBG_MIXED_SPEC.notes,
+    })
+  })
+
+  console.log(`\n=== Generating dbg_fail (ok then trap) ===`)
+  await withTempRoot(async (root) => {
+    const recorded = await recordFailFixture(root)
+    const outFile = 'dbg_fail.waosrec'
+    const outPath = join(OUT_DIR, outFile)
+    await packSession(recorded.sessionDir, outPath, waosrecBin)
+    console.log(`Wrote ${outPath}`)
+    fixtures.push({
+      id: DBG_FAIL_SPEC.id,
+      file: outFile,
+      title: DBG_FAIL_SPEC.title,
+      complexity: DBG_FAIL_SPEC.complexity,
+      api: DBG_FAIL_SPEC.api,
+      expects: DBG_FAIL_SPEC.expects,
+      notes: DBG_FAIL_SPEC.notes,
+      replayFails: true,
     })
   })
 

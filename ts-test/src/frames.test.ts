@@ -5,7 +5,7 @@ import {
   encodeMonitorFrame,
   parseMonitorFrames,
   classifyFrame,
-} from '../../src/replay/frames.js'
+} from '@daemonarium/replay'
 
 describe('parseMonitorFrames', () => {
   it('round-trips Copy IN + Data and classifies them', () => {

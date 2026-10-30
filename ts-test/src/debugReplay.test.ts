@@ -1,6 +1,6 @@
 import { expect } from 'chai'
-import { resolveDataFrameIndex, formatPreviewValue } from '../../src/replay/debugReplay.js'
-import type { DecodedFrame } from '../../src/replay/types.js'
+import { resolveDataFrameIndex, formatPreviewValue } from '@daemonarium/replay'
+import type { DecodedFrame } from '@daemonarium/replay'
 
 function frame(
   typeName: string,

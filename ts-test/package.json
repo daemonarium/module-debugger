@@ -12,6 +12,7 @@
   "dependencies": {
     "@daemonarium/fs": "0.1.0",
     "@daemonarium/kernel": "0.1.0",
+    "@daemonarium/replay": "0.1.0",
     "@daemonarium/rpc": "0.1.0"
   },
   "devDependencies": {

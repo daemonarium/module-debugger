@@ -22,6 +22,8 @@ export interface ManifestFixture {
   expects: string[]
   notes?: string
   allowZeroExpects?: boolean
+  /** Replay is expected to throw (dbg_fail). Excluded from the success suite. */
+  replayFails?: boolean
 }
 
 export interface Manifest {
@@ -55,6 +57,6 @@ export function requireWaosrec(id: string): string {
 /** Fixtures that should pass Run with expectMatches ≥ 1 */
 export function replayableFixtures(manifest: Manifest): ManifestFixture[] {
   return manifest.fixtures.filter(
-    (f) => !f.allowZeroExpects && f.expects.includes('expect')
+    (f) => !f.allowZeroExpects && !f.replayFails && f.expects.includes('expect')
   )
 }

@@ -13,10 +13,12 @@ import {
   type RegisteredMethod,
 } from '@daemonarium/rpc'
 import { serializeTypeRegistry, serializeValueByType, registerMessageCodecs } from '@daemonarium/rpc'
-import { enrichRpcMessages, findPairedMessage } from '../../src/replay/rpcEnrich.js'
-import { buildMessageStream } from '../../src/replay/messageStream.js'
-import type { StreamMessage, MessageByteSpan } from '../../src/replay/messageStream.js'
-import type { DecodedFrame } from '../../src/replay/types.js'
+import {
+  enrichRpcMessages,
+  findPairedMessage,
+  buildMessageStream,
+} from '@daemonarium/replay'
+import type { StreamMessage, MessageByteSpan, DecodedFrame } from '@daemonarium/replay'
 
 function makeMockRegistry(): TypeRegistry {
   const registry = new TypeRegistry()

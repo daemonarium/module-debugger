@@ -19,7 +19,7 @@ import {
   buildDumpFromSessionFiles,
   ReplayRuntime,
   ReplayError,
-} from '../../src/replay/index.js'
+} from '@daemonarium/replay'
 import { resolveWaosrecBin } from './fixtureHarness.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))

@@ -28,6 +28,7 @@
     "vue": "^3.5.22",
     "@daemonarium/rpc": "0.1.0",
     "@daemonarium/kernel": "0.1.0",
+    "@daemonarium/replay": "0.1.0",
     "@lezer/highlight": "^1.1.0",
     "@lezer/cpp": "^1.0.0",
     "@lezer/javascript": "^1.0.0",

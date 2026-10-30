@@ -16,7 +16,7 @@ Harness ends each session with recorder **`dump_and_clear`** (persist then clear
 
 Writes:
 
-- 10× `dbg_*.waosrec` (gitignored — large binaries; see Samples)
+- 11× `dbg_*.waosrec` (gitignored — large binaries; see Samples)
 - `manifest.json` (committed metadata)
 
 `dbg_cpeer` is peer WASM only (needed to build `dbg_cclient` / `dbg_mixed`); it is **not** a fixture row.
@@ -52,3 +52,4 @@ Manual UI: `dev`. Playwright e2e: **`vite preview`** (via `playwright.config` we
 | dbg_token | 7 | Flat token↔host + flat peer dbg_kv on sock 2 (shield topology) |
 | dbg_cclient | 8 | Compressed USER + compressed peer `dbg_cpeer` |
 | dbg_mixed | 9 | Flat USER + compressed peer `dbg_cpeer` |
+| dbg_fail | 10 | `ok()` then `boom()` trap. Replay fails (`replayFails`). Not in the success e2e suite |

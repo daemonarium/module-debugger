@@ -311,6 +311,32 @@ export function buildDbgMixedRegistry(): TypeRegistry {
   return buildDbgTokenRegistry()
 }
 
+/** ok() returns a string, then boom() traps the module. */
+export function buildDbgFailRegistry(): TypeRegistry {
+  const registry = new TypeRegistry()
+  const string_ = requireType(registry, 'string')
+  const void_ = requireType(registry, 'void')
+  const ok = TypeDescription.create({
+    name: 'DbgFail.ok',
+    kind: TypeKind.Function,
+    members: [],
+    item: string_,
+  })
+  const boom = TypeDescription.create({
+    name: 'DbgFail.boom',
+    kind: TypeKind.Function,
+    members: [],
+    item: void_,
+  })
+  registerApi(registry, 'DbgFail', [
+    { name: 'ok', type: ok },
+    { name: 'boom', type: boom },
+  ])
+  registry.assignMethodIds()
+  ensureRpcTypesInRegistry(registry)
+  return registry
+}
+
 export type SampleModuleId =
   | 'dbg_echo'
   | 'dbg_hello'
@@ -322,6 +348,7 @@ export type SampleModuleId =
   | 'dbg_cpeer'
   | 'dbg_cclient'
   | 'dbg_mixed'
+  | 'dbg_fail'
 
 export interface SampleModuleSpec {
   id: SampleModuleId
@@ -410,6 +437,20 @@ export const DBG_CCLIENT_SPEC: SampleModuleSpec = {
   expects: ['stimulus', 'expect', 'topology'],
   notes: 'Both USER and peer RPC use compressed_socket_rpc_*; host SocketRpc compressed',
   buildRegistry: buildDbgCclientRegistry,
+}
+
+/**
+ * Not in SAMPLE_MODULE_SPECS. boom() traps, so a normal "replay must succeed"
+ * loop must not pick this up. trace-printer records it on its own.
+ */
+export const DBG_FAIL_SPEC: SampleModuleSpec = {
+  id: 'dbg_fail',
+  title: 'ok() then trap',
+  complexity: 10,
+  api: ['ok', 'boom'],
+  expects: ['stimulus', 'expect', 'anchor'],
+  notes: 'ok() succeeds; boom() traps. Kernel handleData swallows the trap, so the dump has no process_error_event. Replay raises it.',
+  buildRegistry: buildDbgFailRegistry,
 }
 
 /** Flat USER + compressed peer (dbg_mixed ↔ dbg_cpeer). */
