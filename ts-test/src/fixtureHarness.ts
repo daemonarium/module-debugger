@@ -1,4 +1,5 @@
 import { readFile, writeFile, access, constants as fsConstants, cp, mkdir, readdir } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
@@ -39,7 +40,10 @@ import {
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = join(__dirname, '../..')
-const MODULES_DIR = join(REPO_ROOT, 'extern/rpc-cpp/build-web/examples/modules')
+const MODULES_DIRS = [
+  join(REPO_ROOT, 'extern/rpc-cpp/build-web/examples/modules'),
+  join(REPO_ROOT, '../../rpc/rpc-cpp/build-web/examples/modules'),
+]
 
 export const WAOSREC_BIN_CANDIDATES = [
   join(REPO_ROOT, 'extern/recorder-cpp/build/waosrec'),
@@ -60,7 +64,12 @@ export async function resolveWaosrecBin(): Promise<string> {
 }
 
 export function wasmPathFor(id: SampleModuleId): string {
-  return join(MODULES_DIR, `${id}.wasm`)
+  const name = `${id}.wasm`
+  for (const dir of MODULES_DIRS) {
+    const path = join(dir, name)
+    if (existsSync(path)) return path
+  }
+  return join(MODULES_DIRS[MODULES_DIRS.length - 1]!, name)
 }
 
 export async function assertWasmExists(id: SampleModuleId): Promise<string> {
